@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.33 2001/02/21 01:33:39 gstein Exp $
+#   $Id: edna.py,v 1.34 2001/02/21 02:16:11 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -221,27 +221,31 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           path.pop(0)
           self.output_style = 'xml'
 
-    if not path:
+    if not path and len(self.system.dirs) > 1:
       subdirs = [ ]
       for d, name in self.system.dirs:
         subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
                                  text=cgi.escape(name)))
       self.display_page(TITLE, subdirs, skiprec=1)
-    elif path[0] == 'stats':
+    elif path and path[0] == 'stats':
       # the site statistics were requested
       self.display_stats()
     else:
-      for d, name in self.system.dirs:
-        if path[0] == name:
-          curdir = d
-          break
+      if len(self.system.dirs) == 1:
+        url = '/'
+        curdir = self.system.dirs[0][0]
       else:
-        self.send_error(404)
-        return
+        url = '/' + urllib.quote(path[0])
+        for d, name in self.system.dirs:
+          if path[0] == name:
+            curdir = d
+            path.pop(0)
+            break
+        else:
+          self.send_error(404)
+          return
 
-      url = '/' + urllib.quote(path[0])
-      for i in range(1, len(path)):
-        p = path[i]
+      for p in path:
         if p == 'all.m3u' or p == 'allrecursive.m3u' or \
            p == 'shuffle.m3u' or p == 'shufflerecursive.m3u':
           # serve up a pseudo-file
@@ -266,14 +270,17 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           return
 
         curdir = pathname
-        url = url + '/' + urllib.quote(p)
+        if url == '/':
+          url = '/' + urllib.quote(p)
+        else:
+          url = url + '/' + urllib.quote(p)
 
       # requested a directory.
 
       # ensure there is a trailing slash so that the (relative) href
       # values will work.
       if self.path[-1] != '/':
-        redir = self.build_url('/' + string.join(path, '/'))
+        redir = self.build_url(self.path)
         self.redirect(redir)
         return
 
@@ -282,7 +289,11 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       songs = []
       playlists = []
 
-      thisdir = path[-1]
+      if path:
+        thisdir = path[-1]
+      else:
+        # one of the top-level virtual directories
+        thisdir = ''
       thisdirlen = len(thisdir)
 
       for name in sort_dir(curdir):
@@ -306,7 +317,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           # if a song has a prefix that matches the directory, and something
           # exists after that prefix, then strip it. don't strip if the
           # directory is a single-letter.
-          if base[:thisdirlen] == thisdir and len(base) > thisdirlen > 1:
+          if len(base) > thisdirlen > 1 and base[:thisdirlen] == thisdir:
             base = base[thisdirlen:]
 
             # trim a bit of stuff off of the file
@@ -930,10 +941,6 @@ if __name__ == '__main__':
 ##########################################################################
 #
 # TODO
-#
-# from Stephen Kennedy <Stephen.Kennedy@havok.com>:
-#   If there is only one repository, dont display the directory chooser.
-#   Allow merging of repositories into a single view.
 #
 # add a server admin address to the pages
 #
