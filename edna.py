@@ -20,10 +20,10 @@
 #
 #
 # This software is maintained by Greg and is available at:
-#    http://www.lyra.org/greg/edna/
+#    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.37 2001/02/21 12:31:25 gstein Exp $
+#   $Id: edna.py,v 1.38 2001/02/22 09:33:28 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -318,8 +318,16 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           d = _datablob(href=href, is_new=is_new, text=cgi.escape(base))
 
           info = MP3Info(open(fullpath, 'rb'))
-          if info.valid:
-            d.info = info
+          if hasattr(info, 'length'):
+            if info.length > 3600:
+              info.duration = '%d:%02d:%02d' % (int(info.length / 3600),
+                                                int(info.length / 60) % 60,
+                                                int(info.length) % 60)
+            else:
+              info.duration = '%d:%02d' % (int(info.length / 60),
+                                           int(info.length) % 60)
+
+          d.info = empty_delegator(info)
 
           songs.append(d)
         else:
@@ -639,6 +647,16 @@ class _datablob:
   def __init__(self, **args):
     self.__dict__.update(args)
 
+class empty_delegator:
+  "Delegate attrs to another object; fill in empty string for unknown attrs."
+  def __init__(self, ob):
+    self.ob = ob
+  def __getattr__(self, name):
+    try:
+      return getattr(self.ob, name)
+    except AttributeError:
+      return ''
+
 
 _genres = [
   "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
@@ -801,12 +819,12 @@ class MP3Info:
     self.mode = _modes[mode]
 
     if self.layer == 1:
-      framelength = ((  12 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit) * 4
-      samplesperframe = 384.0
+      self.framelength = ((  12 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit) * 4
+      self.samplesperframe = 384.0
     else:
-      framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
-      samplesperframe = 1152.0
-    self.length = (self.filesize / framelength) * (samplesperframe / self.samplerate)
+      self.framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
+      self.samplesperframe = 1152.0
+    self.length = (self.filesize / self.framelength) * (self.samplesperframe / self.samplerate)
 
     # found a valid MPEG file
     self.valid = 1
@@ -830,7 +848,7 @@ class MP3Info:
         (bytes,) = struct.unpack('>i', header[i+12:i+16])
 
         if self.samplerate:
-          self.length = frames * samplesperframe / self.samplerate
+          self.length = frames * self.samplesperframe / self.samplerate
           self.bitrate = (bytes * 8.0 / self.length) / 1000
 
   def _parse_id3(self, file):
