@@ -3,17 +3,23 @@ This is an example of wrapping an arbitary SocketServer.TCPServer derived
 server into an NT service with out too much pain and suffering.
 """
 
-# Edna is the arbitrary TCPServer
-import edna
-# TCPServerService is the generic NT servic <-> TCPServer
-# interaction code
+# TCPServerService is the generic NT service <-> TCPServer interaction code
 import TCPServerService
+
 # Mark's cool helper module...
 import win32serviceutil
 import win32service
 import win32event
 import SocketServer
 import BaseHTTPServer
+
+# Edna is the TCPServer we will turn into an NT Service
+try:
+  import edna
+except ImportError:
+  import sys
+  sys.path.append('..')
+  import edna
 
 class EdnaSvc(TCPServerService.TCPServerService,
               # This following line is optional...
@@ -101,5 +107,4 @@ if __name__ == "__main__":
     # Make sure these files are in the Python path...
     regsetup.FindRegisterModule("ednaNTSvc", 'ednaNTSvc.py', sys.path)
     regsetup.FindRegisterModule("TCPServerService", 'TCPServerService.py', sys.path)
-    regsetup.FindRegisterModule("edna", "edna.py", ".")
-    
+    regsetup.FindRegisterModule("edna", "edna.py", "..")
