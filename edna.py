@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.18 2001/02/19 12:39:47 gstein Exp $
+#   $Id: edna.py,v 1.19 2001/02/19 12:59:49 gstein Exp $
 #
 
 import SocketServer
@@ -138,6 +138,15 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       entry = (self._dot2int(addr), mask)
       if not entry in self.acls:
         self.acls.append(entry)
+
+    try:
+      self.css_url = string.strip(config.get('server', 'stylesheet-url'))
+    except ConfigParser.NoOptionError:
+      self.css_url = None
+    try:
+      self.css_text = string.strip(config.get('server', 'stylesheet-text'))
+    except ConfigParser.NoOptionError:
+      self.css_text = None
 
   def log_user(self, ip, time, fname):
     if len(self.userLog) > 19:
@@ -322,10 +331,16 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_header("Content-Type", "text/html")
     self.end_headers()
 
-    self.wfile.write('<html><head><title>%s</title></head>'
-                     '<body><h1>%s</h1>\n'
-                     % (cgi.escape(title), cgi.escape(title))
-                     )
+    self.wfile.write('<html><head><title>%s</title>' % cgi.escape(title))
+
+    # stylesheet handling. do we have a URL or actual text?
+    if self.server.css_url:
+      self.wfile.write('<link rel=stylesheet href="%s" type="text/css">\n'
+                       % self.server.css_url)
+    elif self.server.css_text:
+      self.wfile.write('<style>%s</style>\n' % self.server.css_text)
+
+    self.wfile.write('</head><body><h1>%s</h1>\n' % cgi.escape(title))
 
     links = self.tree_position()
     self.wfile.write(links)
@@ -360,6 +375,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def display_html_list(self, title, list, skipall=0):
     if list:
       if title != 'Pictures':
+        self.wfile.write('<div id="%s">\n'
+                         % cgi.escape(string.lower(title), 1))
         self.wfile.write('<p>%s:</p><ul>\n' % title)
       for text, href in list:
         href = urllib.quote(href)
@@ -388,6 +405,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                            '<br>'
                            '<a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>'
                            '</blockquote></p>\n')
+      if title != 'Pictures':
+        self.wfile.write('</div>\n')
 
   def display_xml_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
     self.send_response(200)
@@ -580,7 +599,11 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                       'explain': 'Object moved permanently'})
 
   def log_request(self, code='-', size='-'):
-    self.log_message('"%s" %s', self.path, code)
+    try:
+      self.log_message('"%s" %s', self.path, code)
+    except AttributeError:
+      # sometimes, we get an error before self.path exists
+      self.log_message('<unknown URL> %s', code)
 
   def log_message(self, format, *args):
     log = self.server.config.get('server', 'log')
@@ -718,7 +741,7 @@ class MP3Info:
       #emphasis =       (bytes >> 0)  & 3  # MM   00 = none, 01 = 50/15 ms, 10 = res, 11 = CCIT J.17
 
       if mpeg_version == 0:
-        self.mpeg_version == 2.5
+        self.mpeg_version = 2.5
       elif mpeg_version == 2: 
         self.mpeg_version = 2
       elif mpeg_version == 3:
