@@ -1,68 +1,91 @@
-<html><head><title>[title]</title>
-<!-- CSS stuff goes here -->
-</head><body><h1>[title]</h1>
-[links]
+<html><head><title>edna: [title]</title>
+<style><!--
+  A:link { text-decoration:none }
+  A:visited { text-decoration:none }
+  A:active { text-decoration:none }
+  A:hover { text-decoration:underline; color:#ff0000 }
+--></style>
+</head><body link="#444488" alink="#884444" vlink="#444488">
+[if-any links]
+  <table width="100%" bgcolor="#bbbbff"><tr>
+    <td><font size="+2">[links]</font></td>
+  </tr></table>
+[else]
+  <h1>edna: [title]</h1>
+[end]
 
 [if-any pictures]
-  <div id="pictures">
   [for pictures]
     <img src="[pictures.href]">
   [end]
-  </div>
 [end]
 
 [if-any subdirs]
-  <div id="subdirectories">
-  <p>Subdirectories:</p>
+  <p>
+  <table border=0 cellpadding=0 cellspacing=2 width="100%" bgcolor="#ff0000">
+  <tr><td>
+  <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
+  <tr bgcolor="#d1d5d7"><th>Subdirectories</th></tr>
+  <tr><td>
   <ul>
   [for subdirs]
     <li><a href="[subdirs.href]">[subdirs.text]</a>[subdirs.is_new]</li>
   [end]
   </ul>
   [if-any display-recursive]
-    <p><blockquote>
-      <a href="allrecursive.m3u">Play all songs (recursively)</a>
-      <br>
-      <a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>
-    </blockquote></p>
+    &nbsp;&nbsp;<a href="allrecursive.m3u">Play all songs (recursively)</a>
+    <br>
+    &nbsp;&nbsp;<a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>
   [end]
-  </div>
+  </td></tr></table></td></tr></table>
+  </p>
 [end]
 
 [if-any songs]
-  <div id="songs">
-  <p>Songs:</p>
+  <p>
+  <table border=0 cellpadding=0 cellspacing=2 width="100%" bgcolor="#ff0000">
+  <tr><td>
+  <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
+  <tr bgcolor="#d1d5d7"><th>Songs</th></tr>
+  <tr><td>
   <ul>
   [for songs]
     <li><a href="[songs.href].m3u">[songs.text]</a>[songs.is_new]</li>
   [end]
   </ul>
-  <p><blockquote>
-    <a href="all.m3u">Play all songs</a>
-    <br>
-    <a href="shuffle.m3u">Shuffle all songs</a>
-  </blockquote></p>
-  </div>
+  &nbsp;&nbsp;<a href="all.m3u">Play all songs</a>
+  <br>
+  &nbsp;&nbsp;<a href="shuffle.m3u">Shuffle all songs</a>
+  </td></tr></table></td></tr></table>
+  </p>
 [end]
 
 [if-any playlists]
-  <div id="playlists">
-  <p>Playlists:</p>
+  <p>
+  <table border=0 cellpadding=0 cellspacing=2 width="100%" bgcolor="#ff0000">
+  <tr><td>
+  <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
+  <tr bgcolor="#d1d5d7"><th>Playlists</th></tr>
+  <tr><td>
   <ul>
   [for playlists]
     <li><a href="[playlists.href]">[playlists.text]</a>[playlists.is_new]</li>
   [end]
-  </ul></div>
+  </ul>
+  </td></tr></table></td></tr></table>
+  </p>
 [end]
 
-[if-any subdirs][links]
-[else][if-any songs][links]
-[else][if-any playlists][links]
+[if-any subdirs]
+[else][if-any songs]
+[else][if-any playlists]
 [else]
 <i>Empty directory</i>
 [end][end][end]
 
-<p><a href="/stats/">Server statistics</a></p>
-<hr>
-<center>Powered by <a href="http://edna.sourceforge.net/">edna</a></center>
+<hr noshade>
+<table width="100%" border=0 cellpadding=0 cellspacing=0><tr>
+<td>Powered by <a href="http://edna.sourceforge.net/">edna</a></td>
+<td align=right><a href="/stats/">Server statistics</a></td>
+</tr></table>
 </body></html>
