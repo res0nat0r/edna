@@ -12,6 +12,8 @@ import TCPServerService
 import win32serviceutil
 import win32service
 import win32event
+import SocketServer
+import BaseHTTPServer
 
 class EdnaSvc(TCPServerService.TCPServerService,
               # This following line is optional...
@@ -20,7 +22,7 @@ class EdnaSvc(TCPServerService.TCPServerService,
               # any pending requests, instead of making the service
               # hang around until all pending requests are finished.
               TCPServerService.SvcTrackingThreadingMixin,
-              edna.Server):
+              BaseHTTPServer.HTTPServer):
   # Here belong some special attributes pertaining to the installation
   # of this service.
   # _svc_name_, and _svc_display_name_ are required!
@@ -40,8 +42,11 @@ class EdnaSvc(TCPServerService.TCPServerService,
   # _exe_name_: This should be set to a service .EXE if you're not
   #             going to use PythonService.exe
   
-  # This is required by TCPServerService:
-  RequestHandler = edna.RequestHandler
+  def __init__(self, args):
+    fname = win32serviceutil.GetServiceCustomOption(self, "ConfigurationFile")
+    prh = edna.PseudoRequestHandler(fname)
+    self.port = prh.config.getint('server', 'port')
+    TCPServerService.TCPServerService.__init__(self, args, (prh.config.get('server', 'binding-hostname'), self.port), prh)
 
   def waitForPendingRequests(self):
     """
@@ -98,6 +103,3 @@ if __name__ == "__main__":
     regsetup.FindRegisterModule("TCPServerService", 'TCPServerService.py', sys.path)
     regsetup.FindRegisterModule("edna", "edna.py", ".")
     
-
-
-

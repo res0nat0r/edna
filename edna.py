@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.23 2001/02/19 22:34:14 gstein Exp $
+#   $Id: edna.py,v 1.24 2001/02/19 23:10:48 rassilon Exp $
 #
 
 import SocketServer
@@ -738,14 +738,19 @@ class MP3Info:
         self.mpeg_version = 2.5
       elif mpeg_version == 2: 
         self.mpeg_version = 2
-      elif mpeg_version == 3:
+### One of my MP3s had a mpeg_version of 1, and allowing this
+### let it through. (rassilon, Holy Night)
+      elif mpeg_version == 3 or mpeg_version == 1:
         self.mpeg_version = 1
       else:
         self.mpeg_version = None
 
       self.layer = 4 - layer
-      if layer == 0:
-        self.layer = None
+###
+###   I don't know why I had to do this, but otherwise
+###   the bitrate calc barfed on one MP3 I have. (rassilon, Holy Night)
+###      if layer == 0:
+###        self.layer = None
         
       try:
         self.bitrate = _bitrates[int(self.mpeg_version) - 1][self.layer - 1][bitrate]

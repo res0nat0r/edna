@@ -53,13 +53,8 @@ class TCPServerService(win32serviceutil.ServiceFramework):
   """
   This class is the glue between acting as an NT service, and
   any arbitrary SocketServer.TCPServer.
-  The only requirement that the arbitrary server have, is that it must
-  have a "config" method that minmally looks something like:
-  def config(self, fname, config):
-    self.config = config
-    config.read(fname)
   """
-  def __init__(self, args):
+  def __init__(self, args, tcpargs, rh):
     # Kick off the NT service framework.
     # This registers win32serviceutil.ServiceFramework.ServiceCtrlHandler
     # as the Python routine to be invoked when SCM (Service Control Mangager)
@@ -79,23 +74,19 @@ class TCPServerService(win32serviceutil.ServiceFramework):
     # Hang onto this module for other people to use for logging purposes.
     import servicemanager
     self.servicemanager = servicemanager
-    # NT services don't have command lines you can pass things into.
-    # So, we need to figure out how our server should run.
-    config = ConfigParser.ConfigParser()
-    # set up some defaults for the config.
-    config.add_section('server')
-    d = config.defaults()
-    d['port'] = '8080'
-    # By default, bind to all IP addresses...
-    d['binding_hostname'] = ''
-    d['log'] = ''
-    fname = win32serviceutil.GetServiceCustomOption(self, "ConfigurationFile")
-    # Process the configuration.
-    self.config(fname, config)
     SocketServer.TCPServer.__init__(
       self,
-      (config.get('server', 'binding_hostname'), config.getint('server', 'port')),
-      self.RequestHandler)
+      tcpargs,
+      rh)
+    
+  def server_bind(self):
+    # set SO_REUSEADDR (if available on this platform)
+    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
+      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # we don't need the server name/port, so skip BaseHTTPServer's work
+    ### build_url() uses server.server_name and server.server_port
+    SocketServer.TCPServer.server_bind(self)
     
   def SvcStop(self):
     self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
