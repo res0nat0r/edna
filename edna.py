@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.52 2002/09/26 10:07:58 halux2001 Exp $
+#   $Id: edna.py,v 1.53 2002/09/26 16:42:31 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -109,7 +109,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     debug_level = config.getint('extra', 'debug_level')
     global DAYS_NEW
     DAYS_NEW = config.getint('extra', 'days_new')
-    
+
     if debug_level == 1:
       print 'Running in debug mode'
 
@@ -197,7 +197,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     if ip not in self.userIPs.keys():
       # add the entry for the first time
       self.userIPs[ip] = (1, tm)
-    else: 
+    else:
       # increment the count and add the most recent time
       count, oldTime = self.userIPs[ip]
       self.userIPs[ip] = (count + 1, tm)
@@ -222,7 +222,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def _perform_GET(self):
 
-    ## verify the IP    
+    ## verify the IP
     if not self.server.acl_ok(self.client_address[0]):
       self.send_error(403, 'Forbidden')
       return
@@ -376,7 +376,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
               info = MP3Info.MP3Info(open(fullpath, 'rb'))
             else:
               continue
-          else:  
+          else:
             info = MP3Info.MP3Info(open(fullpath, 'rb'))
 
           if hasattr(info, 'length'):
@@ -589,13 +589,13 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_header("Content-Type", type)
     self.send_header("Content-Length", clen)
     self.end_headers()
-    
+
     #Seek if the client requests it (a HTTP/1.1 request)
     if range:
       type, seek = string.split(range,'=')
       startSeek, endSeek = string.split(seek,'-')
       f.seek(int(startSeek))
-      
+
     while 1:
       data = f.read(8192)
       if not data:
@@ -731,7 +731,7 @@ class empty_delegator:
 class OggInfo:
   """Extra information about an Ogg Vorbis file.
   Uses ogg-python and vorbis-python from http://www.duke.edu/~ahc4/pyogg/.
-  
+
   Patch from Justin Erenkrantz <justin@erenkrantz.com>
   """
 
@@ -743,7 +743,7 @@ class OggInfo:
     self.vf = ogg.vorbis.VorbisFile(name)
     vc = self.vf.comment()
     vi = self.vf.info()
-    
+
     self.bitrate = vi.rate
     # According to the docs, -1 means the current bitstream
     self.length = self.vf.time_total(-1)
@@ -772,26 +772,25 @@ class OggInfo:
             self.transcoded = val
 
     self.valid = 1
-  
 
 
 def _usable_file(fname):
   return fname[0] != '.'
-    
+
 def sort_dir(d):
   l = filter(_usable_file, os.listdir(d))
   l.sort()
   return l
-    
+
 def dot2int(dotaddr):
   a, b, c, d = map(int, string.split(dotaddr, '.'))
   return (a << 24) + (b << 16) + (c << 8) + (d << 0)
-    
+
 class Messages:
   def debug_message(self, message):
     if debug_level == 1:
       print message
-    
+
 # return empty string or a "new since..." string
 def check_new(ctime):
   if (time.time() - ctime) < DAYS_NEW * 86400:
@@ -802,7 +801,7 @@ def check_new(ctime):
 
 
 # Extensions that WinAMP can handle: (and their MIME type if applicable)
-extensions = { 
+extensions = {
   '.mp3' : 'audio/mpeg',
   '.mid' : 'audio/mid',
   '.mp2' : 'video/mpeg',        ### is this audio or video? my Windows box
@@ -824,14 +823,14 @@ extensions = {
   }
 
 # Extensions of images: (and their MIME type)
-picture_extensions = { 
+picture_extensions = {
   '.gif' : 'image/gif',
   '.jpeg' : 'image/jpeg',
   '.jpg' : 'image/jpeg',
   '.png' : 'image/png',
   }
 
-any_extensions = {} 
+any_extensions = {}
 any_extensions.update(extensions)
 any_extensions.update(picture_extensions)
 
@@ -851,7 +850,7 @@ if __name__ == '__main__':
     print 'Ogg Vorbis support enabled'
   else:
     print 'Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules'
-  
+
   print "edna: serving on port %d..." % svr.port
   try:
     svr.serve_forever()
@@ -887,5 +886,5 @@ if __name__ == '__main__':
 #
 # provide a mechanism for serving misc. files (e.g CSS files)
 #
-# check_new(ctime) is wrong
+#
 #
