@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.4 2000/01/27 12:55:25 gstein Exp $
+#   $Id: edna.py,v 1.5 2000/01/28 01:32:52 gstein Exp $
 #
 
 import SocketServer
@@ -78,14 +78,14 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     dirs.sort()
     for i in range(len(dirs)):
       dir = map(string.strip, string.split(dirs[i][1], '='))
-      if not os.path.isdir(dir[0]):
-        print "WARNING: a source's directory must exist"
-        print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
-        continue
       if len(dir) == 1:
         name = dir[0]
       else:
         name = dir[1]
+      if not os.path.isdir(dir[0]):
+        print "WARNING: a source's directory must exist"
+        print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
+        continue
       if string.find(name, '/') != -1:
         print "WARNING: a source's display name cannot contain '/'"
         print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
@@ -96,6 +96,12 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def do_GET(self):
+    try:
+      self._perform_GET()
+    except ClientAbortedException:
+      pass
+
+  def _perform_GET(self):
     path = self.translate_path()
     if path is None:
       self.send_error(400, 'Illegal URL construction')
@@ -352,6 +358,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       except IOError:
         pass
 
+  def setup(self):
+    SocketServer.StreamRequestHandler.setup(self)
+
+    # wrap the wfile with a class that will eat up "Broken pipe" errors
+    self.wfile = _SocketWriter(self.wfile)
+
   def finish(self):
     # if the other end breaks the connection, these operations will fail
     try:
@@ -363,6 +375,27 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     except socket.error:
       pass
 
+
+class _SocketWriter:
+  "This class ignores 'Broken pipe' errors."
+  def __init__(self, wfile):
+    self.wfile = wfile
+
+  def __getattr__(self, name):
+    return getattr(self.wfile, name)
+
+  def write(self, buf):
+    try:
+      return self.wfile.write(buf)
+    except IOError, v:
+      if v.errno != 32:
+        # not a 'Broken pipe'... re-raise the error
+        raise
+      print 'NOTICE: Client closed the connection prematurely'
+      raise ClientAbortedException
+
+class ClientAbortedException(Exception):
+  pass
 
 _genres = [
   "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
