@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.38 2001/02/22 09:33:28 gstein Exp $
+#   $Id: edna.py,v 1.39 2001/02/22 09:54:45 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -410,7 +410,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       url = url + '/' + urllib.quote(mypath[count])
       text = cgi.escape(mypath[count])
       if count == last - 1:
-        links.append('<b> : %s</b>' % text)
+        links.append('<b> / %s</b>' % text)
       else:
         links.append('<b> / </b><a href="%s/">%s</a>' % (url, text))
 
@@ -906,7 +906,7 @@ DAYS_NEW = 30   ### make this a config option
 def check_new(ctime):
   if (time.time() - ctime) < DAYS_NEW * 86400:
     t = time.strftime('%B %d', time.localtime(ctime))
-    return ' <i>new since %s</i>' % t
+    return ' <span class="isnew">new since %s</span>' % t
   return ''
 
 
