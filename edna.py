@@ -23,8 +23,10 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.29 2001/02/20 11:14:17 gstein Exp $
+#   $Id: edna.py,v 1.30 2001/02/20 11:22:47 gstein Exp $
 #
+
+__version__ = '0.4'
 
 import SocketServer
 import BaseHTTPServer
@@ -80,9 +82,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
       self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    # we don't need the server name/port, so skip BaseHTTPServer's work
-    ### build_url() uses server.server_name and server.server_port
-    SocketServer.TCPServer.server_bind(self)
+    BaseHTTPServer.HTTPServer.server_bind(self)
 
 
 class PseudoRequestHandler:
@@ -185,7 +185,7 @@ class PseudoRequestHandler:
   def acl_ok(self, ipaddr):
     if not self.acls:
       return 1
-    ipaddr = self._dot2int(ipaddr)
+    ipaddr = dot2int(ipaddr)
     for allowed, mask in self.acls:
       if (ipaddr & mask) == (allowed & mask):
         return 1
@@ -609,6 +609,10 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.rfile.close()
     except socket.error:
       pass
+
+  def version_string(self):
+    return BaseHTTPServer.BaseHTTPRequestHandler.version_string(self) \
+           + ' edna/' + __version__
 
 
 class _SocketWriter:
