@@ -35,7 +35,7 @@ import string
 import re
 from types import StringType, IntType, FloatType
 
-_re_parse = re.compile('(\[[-\w. ]+\])|(\[\[\])')
+_re_parse = re.compile('(\[[-\w.# ]+\])|(\[\[\])')
 
 # block commands and their argument counts
 _block_cmd_specs = { 'if-any':1, 'if-index':2, 'for':1 }
@@ -74,6 +74,9 @@ class Template:
         # DIRECTIVE is present.
         args = string.split(piece[1:-1])
         cmd = args[0]
+        if cmd == '#':
+          # comment
+          continue
         if cmd == 'else':
           if len(args) > 1:
             raise ArgCountSyntaxError()
@@ -186,6 +189,8 @@ def _get_value(refname, ref, ctx):
   # make sure we return a string.  ### other types?
   if isinstance(ob, IntType) or isinstance(ob, FloatType):
     return str(ob)
+  if ob is None:
+    return ''
   return ob
 
 class _context:
