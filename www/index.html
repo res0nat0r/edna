@@ -1,0 +1,201 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>edna -- an MP3 server</title>
+  </head>
+
+  <body background="/images/chalk.jpg">
+
+    <table width="100&#37;">
+      <tr>
+	<td>
+	  <h1>edna -- an MP3 server</h1>
+	</td>
+	<td align=center valign=top bgcolor="white" width="1&#37;">
+	  <b>Quickstart:</b>
+	  <a href="edna-0.3.tar.gz">download</a>
+	</td>
+      </tr>
+    </table>
+
+    <p>
+      This is a quick hack that I put together, based on ideas from my
+      friend,
+      <a href="http://www.cybersnot.com/"><i>Geoff Elliott</i></a>.
+      He had written a program named ampRadio that operates much like
+      <strong>edna</strong> -- serving up HTML pages with links to MP3
+      files, and then serving out those MP3s.
+    </p>
+
+    <hr width="80&37;">
+    <p>
+      <font size="+1"><b>NOTE:</b></font>
+	Jeffrey Griffith has put together a <a href="./beta/">revised
+	version of this web site</a>.
+      <br>
+
+      It isn't ready for prime time, but may have information that
+      interests you. We would also welcome any feedback about the
+      site. We're still shuffling stuff around, so you may also want
+      to visit
+      <a href="http://www.auburn.edu/~griffjm/edna/">Jeffrey's edna
+	pages</a>
+      for extra tidbits. Greg is off on vacation and will update this
+      stuff at the beginning of October.
+    </p>
+    <p>
+      Please feel free to sign up on the
+      <a href="http://mailman.lyra.org/mailman/listinfo/edna">edna
+      mailing list</a>.
+    </p>
+    <hr width="80&37;">
+
+    <p>
+      <strong>edna</strong> is currently labeled as <em>version
+	0.3</em> because there are still a few more features that I
+      would like to
+      add. It is <em>very</em> stable and can be used (now) without a
+      problem.
+    </p>
+
+    <p>
+      While any silly web server can do this (serve up MP3s), there
+      are two cool features about <strong>edna</strong>:
+    </p>
+    <ul>
+      <li>
+	The pages are dynamically constructed, adjusting to directory
+	structure and the files in those directories.  This is much
+	nicer than using simple directory indexing. While the dynamic
+	file list could be done with various CGI or PHP-like tools,
+	the dynamic directories would be a lot harder.
+      </li>
+      <li>
+	This is the coolest part... Rather than directly serving up an
+	MP3, the software serves up a <em>playlist</em>. This gets
+	passed to your player (e.g. WinAmp) which turns around with an
+	HTTP request to <em>stream</em> the MP3. I must give credit to
+	Geoff for this one :-)
+      </li>
+    </ul>
+
+    <p>
+      When constructing a page for a directory, <strong>edna</strong>
+      will list all
+      subdirectories, MP3 song files (.mp3 extensions), playlists
+      (.m3u extensions), and certain other types of music files (such
+      as .wav). All other files will be ignored.
+    </p>
+    <p>
+      <strong>edna</strong> can automatically create play lists for
+      individual
+      directories of songs, and all directories recursively. These
+      lists can also be shuffled (by <strong>edna</strong>, rather
+      than your player).
+    </p>
+    <p>
+      Your MP3 player must be able to recognize .m3u files, and your
+      browser must know to pass .m3u files to your player. Your player
+      must be capable of handling URLs within a playlist. I've tested
+      this with WinAmp, which definitely meets these needs.
+    </p>
+
+    <p>
+      I'd also like to thank
+      <a href="mailto:lowe@centre.edu">Andy Lowe</a>
+      for submitting the patches for recursive play lists.
+      <a href="mailto:billtut@microsoft.com">Bill Tutt</a> has
+      provided some excellent patches, too; version 0.4 will include
+      his patches to turn <strong>edna</strong> into a Win32 Service.
+    </p>
+
+    <hr align=left width="30&#37;">
+    <h2>Can I have the source?</h2>
+    <p>
+      Sure. <strong>edna</strong> is licensed under the
+      <a href="http://www.fsf.org/copyleft/gpl.html"><i>GPL</i></a>.
+      It is a small
+      <a href="http://www.python.org/"><i>Python</i></a> script. At
+      the moment, it is about 500 lines (version 0.1
+      was only 250!). You can view
+      the thing
+      <a href="edna.py">online</a>, or grab the
+      <a href="edna-0.3.tar.gz">distribution</a>.
+      <strong>edna</strong> is checked into a CVS repository and is
+      available for
+      <a href="/cgi-bin/viewcvs.cgi/edna/">viewing with your web 
+	browser</a>.
+    </p>
+    <p>
+      The server should work for any platform. I've tested it on
+      Linux and Windows. I've been using Internet Explorer and WinAmp
+      (on Windows) to navigate the pages and play the files.
+    </p>
+
+    <hr align=left width="30&#37;">
+    <h2>Installation and Use</h2>
+    <p>
+      Using <strong>edna</strong> is boringly simple. Make sure you
+      have Python 1.5 installed on your system. Edit the
+      <code>edna.conf</code> file with your setup. This is simple to
+      do, as all you need to tell it is:
+    </p>
+    <ul>
+      <li>what port to run on</li>
+      <li>the directories for your MP3 files</li>
+      <li>optionally, how to log requests</li>
+    </ul>
+    <p>
+      Then, simply run <code>edna.py</code>. This can be done using:
+    </p>
+    <blockquote>
+      <code>% python edna.py</code>
+    </blockquote>
+
+    <p>
+      It will then go into an infinite loop, serving up pages and
+      files. Hit ctrl-C to stop it.
+    </p>
+
+    <hr align=left width="30&#37;">
+    <h2>Modifications</h2>
+    <p>
+      If you don't like the HTML it generates, then look at
+      <code>edna.py</code>. You should be able to figure out how to
+      change it.
+    </p>
+    <p>
+      I'm quite willing to accept patches or other fixes. Just
+      email them to me at
+      <a href="mailto:gstein@lyra.org">gstein@lyra.org</a>.
+    </p>
+    <p>
+      <strong>edna</strong> has some code in it to extract ID3 tags
+      from MP3 files. I'm not using it yet, but will add some code to
+      display the data on the generated web pages. I might also look
+      into using some kind of template mechanism for generating the
+      web pages. A number of people have requested access lists to
+      protect their files, so I'll be adding that soon, too. If you
+      have a pet feature, then please let me know!
+    </p>
+
+    <hr align=left width="30&#37;">
+    <h4>Threading vs Forking</h4>
+    <p>
+      By default, <strong>edna</strong> will use a threading mechanism
+      to serve out requests. If threading support is not available on
+      your platform (the OS doesn't support it, or Python was built
+      without it), then edna will default to forking processes to
+      serve requests. No big deal, but I mention it since edna-0.1 did
+      not fall-back to forking when threading was not available. As of
+      edna-0.2, it will figure out the right thing to do.
+    </p>
+
+    <hr>
+    <address><a href="mailto:gstein@lyra.org">Greg Stein</a></address>
+<!-- Created: Thu Feb 11 06:54:12 PST 1999 -->
+<!-- hhmts start -->
+Last modified: Thu Sep 14 05:30:48 PDT 2000
+<!-- hhmts end -->
+  </body>
+</html>
