@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.15 2001/02/19 12:09:29 gstein Exp $
+#   $Id: edna.py,v 1.16 2001/02/19 12:23:22 gstein Exp $
 #
 
 import SocketServer
@@ -121,6 +121,25 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         continue
       self.dirs.append((dir[0], name))
 
+      
+      self.acls = []
+      try:
+        allowed = re.split(r'[\s\n,]+', config.get('acl', 'allow'))
+      except ConfigParser.NoSectionError:
+        allowed = []
+      for addr in allowed:
+        if '/' in addr:
+          addr, masklen = string.split(addr, '/')
+          masklen = int(masklen)
+        else:
+          masklen = 32
+        if not re.match(r'^\d+\.\d+\.\d+\.\d+$', addr):
+          addr = socket.gethostbyname(addr)
+        mask = ~((1 << (32-masklen)) - 1)
+        entry = (self._dot2int(addr), mask)
+        if not entry in self.acls:
+          self.acls.append(entry)
+
   def log_user(self, ip, time, fname):
     if len(self.userLog) > 19:
       # delete the oldest entry
@@ -153,6 +172,19 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     string = string + '</tr></table>\n'
     return string
 
+  def acl_ok(self, ipaddr):
+    if not self.acls:
+      return 1
+    ipaddr = self._dot2int(ipaddr)
+    for allowed, mask in self.acls:
+      if (ipaddr & mask) == (allowed & mask):
+        return 1
+    return 0
+
+  def _dot2int(self, dotaddr):
+    a, b, c, d = map(int, string.split(dotaddr, '.'))
+    return (a << 24) + (b << 16) + (c << 8) + (d << 0)
+
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -163,6 +195,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       pass
 
   def _perform_GET(self):
+    if not self.server.acl_ok(self.client_address[0]):
+      self.send_error(403, 'Forbidden')
+      return
     path = self.translate_path()
     if path is None:
       self.send_error(400, 'Illegal URL construction')
