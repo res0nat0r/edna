@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.6 2000/04/10 19:05:57 gstein Exp $
+#   $Id: edna.py,v 1.7 2000/06/10 22:42:26 gstein Exp $
 #
 
 import SocketServer
@@ -471,6 +471,7 @@ extensions = {
   '.mtm' : 'audio/mid',
   '.669' : 'audio/mid',
   '.asx' : 'video/x-ms-asf',
+  '.mpg' : 'video/mpeg',
   }
 
 if __name__ == '__main__':
@@ -503,3 +504,16 @@ if __name__ == '__main__':
 
   print "edna: serving on port %d..." % port
   svr.serve_forever()
+
+
+##########################################################################
+#
+# TODO
+#
+# from Stephen Kennedy <Stephen.Kennedy@havok.com>:
+#   If there is only one repository, dont display the directory chooser.
+#   Allow merging of repositories into a single view.
+#
+# add a server admin address to the pages
+# add ACLs
+#
