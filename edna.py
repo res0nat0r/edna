@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.26 2001/02/19 23:46:37 rassilon Exp $
+#   $Id: edna.py,v 1.27 2001/02/20 09:51:52 gstein Exp $
 #
 
 import SocketServer
@@ -34,13 +34,18 @@ import string
 import os
 import cgi
 import urllib
-import StringIO
 import socket
 import re
 import stat
-import whrandom
+import random
 import time
 import ezt
+
+try:
+  import cStringIO
+  StringIO = cStringIO
+except ImportError:
+  import StringIO
 
 error = __name__ + '.error'
 
@@ -485,7 +490,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if shuffle:
       count = len(songs)
       for i in xrange(count):
-        j = int(whrandom.random() * count)
+        j = random.randrange(count)
         songs[i], songs[j] = songs[j], songs[i]
 
     return songs
