@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.12 2001/02/19 00:46:39 gstein Exp $
+#   $Id: edna.py,v 1.13 2001/02/19 10:50:06 gstein Exp $
 #
 
 import SocketServer
@@ -162,6 +162,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.send_error(400, 'Illegal URL construction')
       return
 
+    self.output_style = 'html'
+    if len(path) >= 1:
+      if path[0] == 'xml':
+          path.pop(0)
+          self.output_style = 'xml'
+
     if not path:
       subdirs = map(lambda x: (x[1], x[1]+'/'), self.server.dirs)
       self.display_page('select music', subdirs, skiprec=1)
@@ -245,6 +251,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             match = re_trim.match(base)
             if match:
               base = match.group(1)
+
+          file = open(curdir + '/' + name, 'rb')
+          if file:
+            info = MP3Info(file)
+            if info.valid == 1:
+              info.text = base
+              base = info
           songs.append((base, name + '.m3u'))
         elif ext == '.m3u':
           playlists.append((base, name))
@@ -255,6 +268,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.display_page('select music', subdirs, songs, playlists)
 
   def display_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
+    if self.output_style == 'xml':
+      self.display_xml_page(title, subdirs, songs, playlists, skiprec)
+    else:
+      self.display_html_page(title, subdirs, songs, playlists, skiprec)
+
+  def display_html_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
     self.send_response(200)
     self.send_header("Content-Type", "text/html")
     self.end_headers()
@@ -263,9 +282,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                      '<body><h1>%s</h1>\n'
                      % (cgi.escape(title), cgi.escape(title))
                      )
-    self.display_list('Subdirectories', subdirs, skiprec)
-    self.display_list('Songs', songs)
-    self.display_list('Playlists', playlists)
+    self.display_html_list('Subdirectories', subdirs, skiprec)
+    self.display_html_list('Songs', songs)
+    self.display_html_list('Playlists', playlists)
 
     if not subdirs and not songs and not playlists:
       self.wfile.write('<i>Empty directory</i>\n')
@@ -273,11 +292,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.wfile.write('<p><a href="/stats/">Server statistics</a></p>')
     self.wfile.write('</body></html>\n')
 
-  def display_list(self, title, list, skipall=0):
+  def display_html_list(self, title, list, skipall=0):
     if list:
       self.wfile.write('<p>%s:</p><ul>\n' % title)
       for text, href in list:
-        self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text)))
+        if isinstance(text, MP3Info):
+          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text.text)))
+        else:
+          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text)))
       self.wfile.write('</ul>\n')
       if not skipall:
         if title == 'Songs':
@@ -293,6 +315,45 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                            '<br>'
                            '<a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>'
                            '</blockquote></p>\n')
+
+  def display_xml_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
+    self.send_response(200)
+    self.send_header("Content-Type", "text/xml")
+    self.end_headers()
+
+    self.wfile.write('<?xml version="1.0" encoding="ISO-8859-1"?>\n'
+                     '<edna>\n')
+    self.display_xml_list('subdirectory', subdirs, skiprec)
+    self.display_xml_list('song', songs)
+    self.display_xml_list('playlist', playlists)
+
+    self.wfile.write('</edna>\n')
+
+  def display_xml_list(self, title, list, skipall=0):
+    if list:
+      for text, href in list:
+        if isinstance(text, MP3Info):
+          self.wfile.write('<%s><href>%s</href>'
+                           % (title, urllib.quote(href)))
+          for key, val in vars(text).items():
+            if key != "valid" and val != None:
+              self.wfile.write('<%s>%s</%s>'
+                               % (cgi.escape(key), cgi.escape('%s' % (val)), cgi.escape(key)))
+          self.wfile.write('</%s>\n' % (title))
+        else:
+          self.wfile.write('<%s><href>%s</href><text>%s</text></%s>\n'
+                           % (title, urllib.quote(href), cgi.escape(text), title))
+      if not skipall:
+        if title == 'song':
+          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
+                           % ("all.m3u", "Play all songs"))
+          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
+                           % ("shuffle.m3u", "Shuffle all songs"))
+        elif title == 'subdirectory' : 
+          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
+                           % ("allrecursive.m3u", "Play all songs (recursively)"))
+          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
+                           % ("shufflerecursive.m3u", "Shuffle all songs (recursively)"))
 
   def make_list(self, fullpath, url, recursive, shuffle, songs=None):
     # This routine takes a string for 'fullpath' and 'url', a list for
@@ -503,16 +564,138 @@ _genres = [
   "Salsa", "Thrash Metal", "Anime", "JPop", "SynthPop",
   ]
 
-class ID3:
+_bitrates = [
+  [ # MPEG-1
+    [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448], # Layer 1
+    [0, 32, 48, 56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384], # Layer 2
+    [0, 32, 40, 48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320]  # Layer 3
+    ],
+
+  [ # MPEG-2 & 2.5
+    [0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256], # Layer 1
+    [0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160], # Layer 2
+    [0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160]  # Layer 3
+    ]
+  ]
+
+_samplerates = [
+  [ 44100, 48000, 32000], # MPEG-1
+  [ 22050, 24000, 16000], # MPEG-2
+  [ 11025, 12000,  8000]  # MPEG-2.5
+  ]
+
+_modes = [ "stereo", "joint stereo", "dual channel", "mono" ]
+
+class MP3Info:
   def __init__(self, file):
     self.valid = 0
-    file.seek(-128, 2)	# 128 bytes before the end of the file
+
+    #
+    # Generic File Info
+    #
+    file.seek(0, 2)
+    self.filesize = file.tell()
+
+    #
+    # MPEG3 Info
+    #
+    file.seek(0, 0)
+    header = file.read(4)  # AAAAAAAA AAABBCCD EEEEFFGH IIJJKLMM
+    if len(header) == 4:
+      bytes = ord(header[0])<<24 | ord(header[1])<<16 | ord(header[2])<<8 | ord(header[3])
+      mpeg_version =    (bytes >> 19) & 3  # BB   00 = MPEG2.5, 01 = res, 10 = MPEG2, 11 = MPEG1  
+      layer =           (bytes >> 17) & 3  # CC   00 = res, 01 = Layer 3, 10 = Layer 2, 11 = Layer 1
+      #protection_bit = (bytes >> 16) & 1  # D    0 = protected, 1 = not protected
+      bitrate =         (bytes >> 12) & 15 # EEEE 0000 = free, 1111 = bad
+      samplerate =      (bytes >> 10) & 3  # F    11 = res
+      padding_bit =     (bytes >> 9)  & 1  # G    0 = not padded, 1 = padded
+      #private_bit =    (bytes >> 8)  & 1  # H
+      mode =            (bytes >> 6)  & 3  # II   00 = stereo, 01 = joint stereo, 10 = dual channel, 11 = mono
+      #mode_extension = (bytes >> 4)  & 3  # JJ
+      #copyright =      (bytes >> 3)  & 1  # K    00 = not copyrighted, 01 = copyrighted
+      #original =       (bytes >> 2)  & 1  # L    00 = copy, 01 = original
+      #emphasis =       (bytes >> 0)  & 3  # MM   00 = none, 01 = 50/15 ms, 10 = res, 11 = CCIT J.17
+
+      if mpeg_version == 0:
+        self.mpeg_version == 2.5
+      elif mpeg_version == 2: 
+        self.mpeg_version = 2
+      elif mpeg_version == 3:
+        self.mpeg_version = 1
+      else:
+        self.mpeg_version = None
+
+      self.layer = 4 - layer
+      if layer == 0:
+        self.layer = None
+        
+      try:
+        self.bitrate = _bitrates[int(self.mpeg_version) - 1][self.layer - 1][bitrate]
+      except IndexError:
+        self.bitrate = None
+
+      try:
+        self.samplerate = _samplerates[int(round(self.mpeg_version)) - 1][samplerate]
+      except IndexError:
+        self.samplerate = None
+
+      if self.bitrate and self.samplerate and self.layer:
+        if self.layer == 1:
+          framelength = ((  12 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit) * 4
+          samplesperframe = 384.0
+        else:
+          framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
+          samplesperframe = 1152.0
+        self.length = (self.filesize / framelength) * (samplesperframe / self.samplerate)
+      else:
+        self.length = None
+
+      try:
+        self.mode = _modes[mode]
+      except IndexError:
+        self.mode = None
+        
+      # Xing-specific header info to properly approximate bitrate
+      # and length for VBR (variable bitrate) encoded mp3s
+      file.seek(0, 0)
+      header = file.read(128)
+
+      i = string.find(header, 'Xing')
+      if i > 0:
+        i = i + 4
+
+        flags  = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
+        if flags & 0x11:
+          frames = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
+          bytes  = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
+          #vbr    = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
+
+          if self.samplerate:
+            self.bitrate = (bytes * 8.0 / frames) * (self.samplerate / samplesperframe) / 1000
+            self.length = frames * samplesperframe / self.samplerate
+
+    #
+    # ID3 Info
+    #
+    try:
+      file.seek(-128, 2)	# 128 bytes before the end of the file
+    except IOError:
+      pass
+    
     if file.read(3) == 'TAG':
       self.title = string.strip(file.read(30))
       self.artist = string.strip(file.read(30))
       self.album = string.strip(file.read(30))
       self.year = string.strip(file.read(4))
-      self.comment = string.strip(file.read(30))	### 29 or 30??
+
+      # a la ID3v1.1 w/ backwards compatiblity to ID3v1
+      comment = file.read(30)
+      if comment[29] == '0':
+        self.track = comment[30]
+        comment = comment[:28]
+      else:
+        self.track = None
+      self.comment = string.strip(comment)
 
       genre = ord(file.read(1))
       if genre < len(_genres):
@@ -520,7 +703,7 @@ class ID3:
       else:
         self.genre = 'unknown'
 
-      self.valid = 1
+    self.valid = 1
 
     file.seek(0, 0)
 
@@ -580,3 +763,15 @@ if __name__ == '__main__':
 # add a server admin address to the pages
 # add ACLs
 #
+# server-side playlist construction
+# persistent playlists (Todd Rowe <trowe@soleras.com>)
+# pass an MP3 (or playlist) off to a server-side player. allows remote
+#   control of an MP3 jukebox/player combo.
+#
+# from Ken Williams <kenw@rulespace.com>:
+#   double logging of requests (one for .mp3, one for .mp3.m3u)
+#
+# from "Daniel Carraher" <dcarrahe@biochem.umass.edu>:
+#   OGG Vorbis files? anything beyond the extension?
+#
+
