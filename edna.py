@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.40 2001/05/19 01:51:06 gstein Exp $
+#   $Id: edna.py,v 1.41 2001/09/04 15:44:17 griffjm Exp $
 #
 
 __version__ = '0.4'
@@ -145,6 +145,15 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       if not entry in self.acls:
         self.acls.append(entry)
 
+    try:
+      auth_pairs = re.split(r'[\s\n,]+', config.get('acl', 'auth'))
+      self.auth_table = {}
+      for pair in auth_pairs:
+        user,passw = string.split(pair,':')
+        self.auth_table[user] = passw
+    except ConfigParser.NoOptionError:
+      self.auth_table = {}
+
     self.port = config.getint('server', 'port')
     SocketServer.TCPServer.__init__(
       self,
@@ -193,9 +202,36 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       pass
 
   def _perform_GET(self):
+
+    ## verify the IP    
     if not self.server.acl_ok(self.client_address[0]):
       self.send_error(403, 'Forbidden')
       return
+
+    ## verify the Username/Password
+    if self.server.auth_table:
+      auth_table = self.server.auth_table
+      auth=self.headers.getheader('Authorization')
+      this_user, this_pass = None, None
+      if auth:
+          if string.lower(auth[:6]) == 'basic ':
+              import base64
+              [name,password] = string.split(
+                  base64.decodestring(string.split(auth)[-1]), ':')
+              this_user, this_pass = name, password
+
+      if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
+        #print 'Authenticated:',this_user, this_pass
+        pass
+      else:
+        realm='edna'
+        self.send_response(401)
+        self.send_header('WWW-Authenticate', 'basic realm="%s"' % realm)
+        self.end_headers()
+        return
+
+
+    
     path = self.translate_path()
     if path is None:
       self.send_error(400, 'Illegal URL construction')
@@ -256,7 +292,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if os.path.isfile(pathname):
           # requested a file.
-          self.serve_file(p, pathname, url)
+          self.serve_file(p, pathname, url, self.headers.getheader('range'))
           return
 
         curdir = pathname
@@ -487,7 +523,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     f = StringIO.StringIO(string.join(output, '\n') + '\n')
     return f
 
-  def serve_file(self, name, fullpath, url):
+  def serve_file(self, name, fullpath, url, range=None):
     base, ext = os.path.splitext(name)
     ext = string.lower(ext)
     if any_extensions.has_key(ext):
@@ -527,7 +563,13 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_header("Content-Type", type)
     self.send_header("Content-Length", clen)
     self.end_headers()
-
+    
+    #Seek if the client requests it (a HTTP/1.1 request)
+    if range:
+      type, seek = string.split(range,'=')
+      startSeek, endSeek = string.split(seek,'-')
+      f.seek(int(startSeek))
+      
     while 1:
       data = f.read(8192)
       if not data:
