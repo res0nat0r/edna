@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.8 2000/09/02 08:01:04 gstein Exp $
+#   $Id: edna.py,v 1.9 2000/09/07 15:13:50 rassilon Exp $
 #
 
 import SocketServer
@@ -58,11 +58,24 @@ except ImportError:
   mixin = SocketServer.ForkingMixIn
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
-  def __init__(self, *args):
+  def __init__(self, fname):
     self.userLog = [ ] # to track server usage
     self.userIPs = { } # log unique IPs
-
-    apply(SocketServer.TCPServer.__init__, (self,) + args)
+    config = ConfigParser.ConfigParser()
+    # set up some defaults for the web server.
+    config.add_section('server')
+    d = config.defaults()
+    d['port'] = '8080'
+    d['binding_hostname'] = ''
+    d['log'] = ''
+    # Process the config file.
+    self.config(fname, config)
+    self.port = config.getint('server', 'port')
+    SocketServer.TCPServer.__init__(
+      self,
+      (config.get('server', 'binding_hostname'),
+       self.port),
+      RequestHandler)
 
   def server_bind(self):
     # set SO_REUSEADDR (if available on this platform)
@@ -72,7 +85,9 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     # we don't need the server name/port, so skip BaseHTTPServer's work
     SocketServer.TCPServer.server_bind(self)
 
-  def config(self, config):
+  def config(self, fname, config):
+    config.add_section('sources')
+    config.read(fname)
     self.config = config
 
     self.dirs = [ ]
@@ -537,24 +552,9 @@ if __name__ == '__main__':
   else:
     fname = 'edna.conf'
 
-  config = ConfigParser.ConfigParser()
+  svr = Server(fname)
 
-  # set up some defaults
-  config.add_section('server')
-  config.add_section('sources')
-  d = config.defaults()
-  d['port'] = '8080'
-  d['log'] = ''
-
-  # read the config file now
-  config.read(fname)
-
-  port = config.getint('server', 'port')
-
-  svr = Server(('', port), RequestHandler)
-  svr.config(config)
-
-  print "edna: serving on port %d..." % port
+  print "edna: serving on port %d..." % svr.port
   svr.serve_forever()
 
 
