@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.17 2001/02/19 12:36:45 gstein Exp $
+#   $Id: edna.py,v 1.18 2001/02/19 12:39:47 gstein Exp $
 #
 
 import SocketServer
@@ -121,24 +121,23 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         continue
       self.dirs.append((dir[0], name))
 
-      
-      self.acls = []
-      try:
-        allowed = re.split(r'[\s\n,]+', config.get('acl', 'allow'))
-      except ConfigParser.NoSectionError:
-        allowed = []
-      for addr in allowed:
-        if '/' in addr:
-          addr, masklen = string.split(addr, '/')
-          masklen = int(masklen)
-        else:
-          masklen = 32
-        if not re.match(r'^\d+\.\d+\.\d+\.\d+$', addr):
-          addr = socket.gethostbyname(addr)
-        mask = ~((1 << (32-masklen)) - 1)
-        entry = (self._dot2int(addr), mask)
-        if not entry in self.acls:
-          self.acls.append(entry)
+    self.acls = []
+    try:
+      allowed = re.split(r'[\s\n,]+', config.get('acl', 'allow'))
+    except ConfigParser.NoSectionError:
+      allowed = []
+    for addr in allowed:
+      if '/' in addr:
+        addr, masklen = string.split(addr, '/')
+        masklen = int(masklen)
+      else:
+        masklen = 32
+      if not re.match(r'^\d+\.\d+\.\d+\.\d+$', addr):
+        addr = socket.gethostbyname(addr)
+      mask = ~((1 << (32-masklen)) - 1)
+      entry = (self._dot2int(addr), mask)
+      if not entry in self.acls:
+        self.acls.append(entry)
 
   def log_user(self, ip, time, fname):
     if len(self.userLog) > 19:
