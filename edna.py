@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.51 2002/09/26 08:58:11 halux2001 Exp $
+#   $Id: edna.py,v 1.52 2002/09/26 10:07:58 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -704,10 +704,12 @@ class _SocketWriter:
       s_buf = str(buf)
       return self.wfile.write(s_buf)
     except IOError, v:
-      if v.errno != 32:
-        # not a 'Broken pipe'... re-raise the error
+      if v.errno == 32 or v.errno == 104:
+        raise ClientAbortedException
+      else:
+        # not a 'Broken pipe' or Connection reset by peer
+        # re-raise the error
         raise
-      raise ClientAbortedException
 
 class ClientAbortedException(Exception):
   pass
@@ -854,8 +856,9 @@ if __name__ == '__main__':
   try:
     svr.serve_forever()
   except KeyboardInterrupt:
-    print "\nKeyboard interrupt --> exit."
-    sys.exit(0)
+    print "\nCaught ctr-c, taking down the server"
+    print "Please wait while the remaining streams finnish.."
+    raise SystemExit
 
 ##########################################################################
 #
