@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.55 2002/11/07 23:53:25 kgk Exp $
+#   $Id: edna.py,v 1.56 2002/11/08 01:58:55 kgk Exp $
 #
 
 __version__ = '0.4'
@@ -93,7 +93,6 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     config.add_section('acl')
     config.add_section('extra')
 
-
     # set up some defaults for the web server.
     d = config.defaults()
     d['port'] = '8080'
@@ -107,6 +106,18 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
 
     config.read(fname)
 
+    # Setup a logging file
+    self.log = None
+    log = self.config.get('server', 'log')
+    if log:
+      if log == '-':
+        self.log = sys.stdout
+      else:
+        try:
+          self.log = open(log, 'a')
+        except IOError:
+          pass
+    
     template_path = config.get('server', 'template-dir')
     template_file = config.get('server', 'template')
     template_path = os.path.join(os.path.dirname(fname), template_path)
@@ -118,7 +129,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     DAYS_NEW = config.getint('extra', 'days_new')
 
     if debug_level == 1:
-      print 'Running in debug mode'
+      self.log_message('Running in debug mode')
 
     tfname = os.path.join(template_path, template_file)
     self.default_template = ezt.Template(tfname)
@@ -144,12 +155,12 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       else:
         name = dir[1]
       if not os.path.isdir(dir[0]):
-        print "WARNING: a source's directory must exist"
-        print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
+        self.log_message("WARNING: a source's directory must exist")
+        self.log_message(" skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name))
         continue
       if string.find(name, '/') != -1:
-        print "WARNING: a source's display name cannot contain '/'"
-        print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
+        self.log_message("WARNING: a source's display name cannot contain '/'")
+        self.log_message(" skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name))
         continue
       self.dirs.append((dir[0], name))
 
@@ -188,7 +199,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
             (config.get('server', 'binding-hostname'), self.port),
             EdnaRequestHandler)
     except socket.error, value:
-        print "edna: bind(): %s" % str(value[1])
+        self.log_message( "edna: bind(): %s" % str(value[1]) )
         raise SystemExit
 
   def server_bind(self):
@@ -223,6 +234,18 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         return 1
     return 0
 
+  def log_message(self, msg):
+    if self.log:
+      try:
+        self.log.write(msg + '\n')
+        self.log.flush()
+      except IOError:
+        pass
+
+  def debug_message(self, msg):
+    if debug_level<1:
+      return
+    self.log_message ('DEBUG: ' + msg)
 
 class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -230,7 +253,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       self._perform_GET()
     except ClientAbortedException:
-      Messages().debug_message('DEBUG --- Exception caught in "do_GET" --- ClientAbortException')
+      self.server.debug_message('Exception caught in "do_GET" --- ClientAbortException')
     except IOError:
       pass
 
@@ -246,7 +269,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         this_user, this_pass = name, password
 
       if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
-        Messages().debug_message('DEBUG --- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
+        self.server.debug_message('--- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
         return 1
     else:
       realm='edna'
@@ -638,7 +661,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       except ValueError:
         break
       if idx == 0:
-        Messages().debug_message('DEBUG --- Warning in translate_path --- Illegal path: the \'..\' attempted to go above the root')
+        self.server.debug_message('Warning in translate_path --- Illegal path: the \'..\' attempted to go above the root')
         return None
       del parts[idx-1:idx+1]
     return parts
@@ -662,20 +685,12 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.log_message('<unknown URL> %s', code)
 
   def log_message(self, format, *args):
-    log = self.server.config.get('server', 'log')
-    if not log:
+    if not self.server.log:
       return
-
-    msg = "%s [%s] %s\n" % (self.address_string(),
-                            self.log_date_time_string(),
-                            format % args)
-    if log == '-':
-      sys.stdout.write(msg)
-    else:
-      try:
-        open(log, 'a').write(msg)
-      except IOError:
-        pass
+    msg = "%s [%s] %s" % (self.address_string(),
+                          self.log_date_time_string(),
+                          format % args)
+    self.server.log_message (msg)
 
   def setup(self):
     SocketServer.StreamRequestHandler.setup(self)
@@ -841,11 +856,6 @@ def dot2int(dotaddr):
   a, b, c, d = map(int, string.split(dotaddr, '.'))
   return (a << 24) + (b << 16) + (c << 8) + (d << 0)
 
-class Messages:
-  def debug_message(self, message):
-    if debug_level == 1:
-      print message
-
 # return empty string or a "new since..." string
 def check_new(ctime):
   if (time.time() - ctime) < DAYS_NEW * 86400:
@@ -890,32 +900,39 @@ any_extensions.update(extensions)
 any_extensions.update(picture_extensions)
 
 config_needed = None
+running = 1
 
 def sighup_handler(signum, frame):
   global config_needed
   config_needed = 1
 
+def sigterm_handler(signum, frame):
+  global running
+  running = None
+
 def run_server(fname):
-  global config_needed, oggSupport
+  global running, config_needed, oggSupport
 
   signal.signal(signal.SIGHUP, sighup_handler)
+  signal.signal(signal.SIGTERM, sigterm_handler)
 
   svr = Server(fname)
   if oggSupport == 'yes':
-    print 'Ogg Vorbis support enabled'
+    svr.log_message('edna: Ogg Vorbis support enabled')
   else:
-    print 'Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules'
+    svr.log_message('edna: Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules')
 
-  print "edna: serving on port %d..." % svr.port
+  svr.log_message("edna: serving on port %d..." % svr.port)
   try:
-    while 1:
+    while running:
 #      print 'waiting ... '
       if config_needed:
+        svr.log_message('edna: Reloading config %s' % fname)
         svr.server_close()
-        print 'Reloading config %s' % fname
         svr = Server(fname)
         config_needed  = None
       svr.handle_request()
+    svr.log_message ("edna: exiting")
   except KeyboardInterrupt:
     print "\nCaught ctr-c, taking down the server"
     print "Please wait while the remaining streams finnish.."
