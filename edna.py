@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.47 2002/09/25 14:10:43 halux2001 Exp $
+#   $Id: edna.py,v 1.48 2002/09/25 14:41:53 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -550,7 +550,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if any_extensions.has_key(ext):
       # log the request of this file
       ip, port = self.client_address
-      self.server.log_user(ip, time.time(), url + '/' + urllib.quote(name))
+      if ext != '.gif' and ext != '.jpg' and ext != '.jpeg' and ext != '.png':
+      	self.server.log_user(ip, time.time(), url + '/' + urllib.quote(name))
 
       # get the file and info for delivery
       type = any_extensions[ext]
