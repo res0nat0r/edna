@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.2 2000/01/19 12:31:56 gstein Exp $
+#   $Id: edna.py,v 1.3 2000/01/27 12:26:56 gstein Exp $
 #
 
 import SocketServer
@@ -129,6 +129,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           return
         curdir = pathname
         url = url + '/' + urllib.quote(p)
+
+      # requested a directory. ensure there is a trailing slash so that
+      # the (relative) href values will work.
+      if self.path[-1] != '/':
+        redir = self.build_url('/' + string.join(path, '/'))
+        self.redirect(redir)
+        return
 
       subdirs = []
       songs = []
@@ -281,7 +288,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # it was probably closed on the other end
         break
 
-  def build_url(self, url, file):
+  def build_url(self, url, file=''):
     host = self.headers.getheader('host') or self.server.server_name
     if string.find(host, ':'):
       return 'http://%s%s/%s' % (host, url, urllib.quote(file))
@@ -306,6 +313,17 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return None
       del parts[idx-1:idx+1]
     return parts
+
+  def redirect(self, url):
+    "Send a redirect to the specified URL."
+    self.log_error("code 301 -- Moved")
+    self.send_response(301, 'Moved')
+    self.send_header('Location', url)
+    self.end_headers()
+    self.wfile.write(self.error_message_format %
+                     {'code': 301,
+                      'message': 'Moved',
+                      'explain': 'Object moved permanently'})
 
   def log_request(self, code='-', size='-'):
     self.log_message('"%s" %s', self.path, code)
