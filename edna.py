@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.41 2001/09/04 15:44:17 griffjm Exp $
+#   $Id: edna.py,v 1.42 2002/09/23 20:14:52 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -387,6 +387,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     for i in range(len(user_log) - 1, -1, -1):
       d = _datablob()
       d.ip, tm, d.url = user_log[i]
+      d.unquoted_url = urllib.unquote(d.url)
       d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
       data['users'].append(d)
 

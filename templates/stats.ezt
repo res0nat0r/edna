@@ -9,7 +9,7 @@
     <tr>
       <td>[users.ip]</td>
       <td>[users.time]</td>
-      <td>[users.url]</td>
+      <td><a href="[users.url].m3u">[users.unquoted_url]</a></td> 
     </tr>
   [end]
   </table>
