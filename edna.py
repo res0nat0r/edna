@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.9 2000/09/07 15:13:50 rassilon Exp $
+#   $Id: edna.py,v 1.10 2001/01/29 10:00:16 gstein Exp $
 #
 
 import SocketServer
@@ -83,6 +83,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # we don't need the server name/port, so skip BaseHTTPServer's work
+    ### build_url() uses server.server_name and server.server_port
     SocketServer.TCPServer.server_bind(self)
 
   def config(self, fname, config):
@@ -303,7 +304,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       songs = []
 
     for name in sort_dir(fullpath):
-      if extensions.has_key(name[-4:]):
+      base, ext = os.path.splitext(name)
+      if extensions.has_key(string.lower(ext)):
         # add the song's URL to the list we're building
         songs.append(self.build_url(url, name) + '\n')
 
