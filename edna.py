@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.46 2002/09/25 10:03:58 halux2001 Exp $
+#   $Id: edna.py,v 1.47 2002/09/25 14:10:43 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -43,14 +43,13 @@ import random
 import time
 import struct
 import ezt
-  
+import MP3Info
+
 try:
   import ogg.vorbis
-  oggSupport='yes'
-  print 'Ogg Vorbis support enabled'
+  oggSupport = 'yes'
 except ImportError:
-  oggSupport='no'
-  print 'Ogg Vorbis support disabled, to enable it you will need to install the pyogg and the pyvorbis modules'
+  oggSupport = 'no'
 
 try:
   import cStringIO
@@ -62,7 +61,6 @@ error = __name__ + '.error'
 
 
 TITLE = 'Streaming MP3 Server'
-
 
 
 # a pattern used to trim leading digits, spaces, and dashes from a song
@@ -216,7 +214,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       self._perform_GET()
     except ClientAbortedException:
-      Messages.debug_message('DEBUG --- Exception catched in "do_GET" --- ClientAbortException')
+      Messages().debug_message('DEBUG --- Exception catched in "do_GET" --- ClientAbortException')
 
   def _perform_GET(self):
 
@@ -369,11 +367,13 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
           if ext == '.ogg':
             if oggSupport == 'yes':
-              info = OggInfo(fullpath)
+	      # doesn't work yet, default.ezt calls some info.mpeg things that are only in MP3Info.py :(
+	      #info = OggInfo(fullpath)
+	      info = MP3Info.MP3Info(open(fullpath, 'rb'))
             else:
               continue
           else:  
-            info = MP3Info(open(fullpath, 'rb'))
+            info = MP3Info.MP3Info(open(fullpath, 'rb'))
 
           if hasattr(info, 'length'):
             if info.length > 3600:
@@ -383,7 +383,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             else:
               info.duration = '%d:%02d' % (int(info.length / 60),
                                            int(info.length) % 60)
-
           d.info = empty_delegator(info)
 
           songs.append(d)
@@ -697,7 +696,8 @@ class _SocketWriter:
 
   def write(self, buf):
     try:
-      return self.wfile.write(buf)
+      s_buf = str(buf)
+      return self.wfile.write(s_buf)
     except IOError, v:
       if v.errno != 32:
         # not a 'Broken pipe'... re-raise the error
@@ -720,229 +720,6 @@ class empty_delegator:
       return getattr(self.ob, name)
     except AttributeError:
       return ''
-
-
-_genres = [
-  "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
-  "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B",
-  "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska",
-  "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient", "Trip-Hop",
-  "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", "Instrumental",
-  "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", "AlternRock",
-  "Bass", "Soul", "Punk", "Space", "Meditative", "Instrumental Pop",
-  "Instrumental Rock", "Ethnic", "Gothic", "Darkwave", "Techno-industrial",
-  "Electronic", "Pop-Folk", "Eurodance", "Dream", "Southern Rock", "Comedy",
-  "Cult", "Gangsta", "Top 40", "Christian Rap", "Pop/Funk", "Jungle",
-  "Native American", "Cabaret", "New Wave", "Psychadelic", "Rave",
-  "Showtunes", "Trailer", "Lo-Fi", "Tribal", "Acid Punk", "Acid Jazz",
-  "Polka", "Retro", "Musical", "Rock & Roll", "Hard Rock", "Folk",
-  "Folk/Rock", "National Folk", "Swing", "Fast-Fusion", "Bebob", "Latin",
-  "Revival", "Celtic", "Bluegrass", "Avantegarde", "Gothic Rock",
-  "Progressive Rock", "Psychedelic Rock", "Symphonic Rock", "Slow Rock",
-  "Big Band", "Chorus", "Easy Listening", "Acoustic", "Humour", "Speech",
-  "Chanson", "Opera", "Chamber Music", "Sonata", "Symphony", "Booty Bass",
-  "Primus", "Porn Groove", "Satire", "Slow Jam", "Club", "Tango", "Samba",
-  "Folklore", "Ballad", "Power Ballad", "Rythmic Soul", "Freestyle", "Duet",
-  "Punk Rock", "Drum Solo", "A capella", "Euro-House", "Dance Hall", "Goa",
-  "Drum & Bass", "Club House", "Hardcore", "Terror", "Indie", "BritPop",
-  "NegerPunk", "Polsk Punk", "Beat", "Christian Gangsta", "Heavy Metal",
-  "Black Metal", "Crossover", "Contemporary C", "Christian Rock", "Merengue",
-  "Salsa", "Thrash Metal", "Anime", "JPop", "SynthPop",
-  ]
-
-_bitrates = [
-  [ # MPEG-2 & 2.5
-    [0,32,48,56, 64, 80, 96,112,128,144,160,176,192,224,256,None], # Layer 1
-    [0, 8,16,24, 32, 40, 48, 56, 64, 80, 96,112,128,144,160,None], # Layer 2
-    [0, 8,16,24, 32, 40, 48, 56, 64, 80, 96,112,128,144,160,None]  # Layer 3
-    ],
-
-  [ # MPEG-1
-    [0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,None], # Layer 1
-    [0,32,48,56, 64, 80, 96,112,128,160,192,224,256,320,384,None], # Layer 2
-    [0,32,40,48, 56, 64, 80, 96,112,128,160,192,224,256,320,None]  # Layer 3
-    ]
-  ]
-
-_samplerates = [
-  [ 11025, 12000,  8000, None], # MPEG-2.5
-  [  None,  None,  None, None], # reserved
-  [ 22050, 24000, 16000, None], # MPEG-2
-  [ 44100, 48000, 32000, None], # MPEG-1
-  ]
-
-_modes = [ "stereo", "joint stereo", "dual channel", "mono" ]
-
-_MP3_HEADER_SEEK_LIMIT = 4000
-
-class MP3Info:
-  """Extra information about an MP3 file.
-
-  See http://www.dv.co.yu/mpgscript/mpeghdr.htm for information about the
-  header and ID3v1.1.
-  """
-
-  def __init__(self, file):
-    self.valid = 0
-
-    #
-    # Generic File Info
-    #
-    file.seek(0, 2)
-    self.filesize = file.tell()
-
-    # find a frame header, then parse it
-    offset, bytes = self._find_header(file)
-    if offset != -1:
-      self._parse_header(bytes)
-      ### offset + framelength will find another header. verify??
-
-    if self.valid:
-      self._parse_xing(file)
-
-    # always parse out the ID3 information
-    self._parse_id3(file)
-
-    # back to the beginning!
-    file.seek(0, 0)
-
-  def _find_header(self, file):
-    file.seek(0, 0)
-    amount_read = 0
-
-    # see if we get lucky with the first four bytes
-    amt = 4
-
-    while amount_read < _MP3_HEADER_SEEK_LIMIT:
-      header = file.read(amt)
-      if len(header) < amt:
-        # awfully short file. just give up.
-        return -1, None
-
-      amount_read = amount_read + len(header)
-
-      # on the next read, grab a lot more
-      amt = 500
-
-      # look for the sync byte
-      offset = string.find(header, chr(255))
-      if offset == -1:
-        continue
-      ### maybe verify more sync bits in next byte?
-
-      if offset + 4 > len(header):
-        more = file.read(4)
-        if len(more) < 4:
-          # end of file. can't find a header
-          return -1, None
-        amount_read = amount_read + 4
-        header = header + more
-      return amount_read - len(header) + offset, header[offset:offset+4]
-
-    # couldn't find the header
-    return -1, None
-
-  def _parse_header(self, header):
-    "Parse the MPEG frame header information."
-
-    # AAAAAAAA AAABBCCD EEEEFFGH IIJJKLMM
-    (bytes,) = struct.unpack('>i', header)
-    mpeg_version =    (bytes >> 19) & 3  # BB   00 = MPEG2.5, 01 = res, 10 = MPEG2, 11 = MPEG1  
-    layer =           (bytes >> 17) & 3  # CC   00 = res, 01 = Layer 3, 10 = Layer 2, 11 = Layer 1
-    #protection_bit = (bytes >> 16) & 1  # D    0 = protected, 1 = not protected
-    bitrate =         (bytes >> 12) & 15 # EEEE 0000 = free, 1111 = bad
-    samplerate =      (bytes >> 10) & 3  # F    11 = res
-    padding_bit =     (bytes >> 9)  & 1  # G    0 = not padded, 1 = padded
-    #private_bit =    (bytes >> 8)  & 1  # H
-    mode =            (bytes >> 6)  & 3  # II   00 = stereo, 01 = joint stereo, 10 = dual channel, 11 = mono
-    #mode_extension = (bytes >> 4)  & 3  # JJ
-    #copyright =      (bytes >> 3)  & 1  # K    00 = not copyrighted, 01 = copyrighted
-    #original =       (bytes >> 2)  & 1  # L    00 = copy, 01 = original
-    #emphasis =       (bytes >> 0)  & 3  # MM   00 = none, 01 = 50/15 ms, 10 = res, 11 = CCIT J.17
-
-    if mpeg_version == 1 or layer == 0:
-      # invalid frame header.
-      return
-
-    if mpeg_version == 0:
-      self.mpeg_version = 2.5
-    elif mpeg_version == 2: 
-      self.mpeg_version = 2
-    else: # mpeg_version == 3
-      self.mpeg_version = 1
-
-    self.layer = 4 - layer
-
-    self.bitrate = _bitrates[mpeg_version & 1][self.layer - 1][bitrate]
-    self.samplerate = _samplerates[mpeg_version][samplerate]
-
-    if self.bitrate is None or self.samplerate is None:
-      # invalid frame header
-      Messages.debug_message('DEBUG --- Warning in _parse_header --- invalid frame header')
-
-    self.mode = _modes[mode]
-
-    if self.layer == 1:
-      self.framelength = ((  12 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit) * 4
-      self.samplesperframe = 384.0
-    else:
-      self.framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
-      self.samplesperframe = 1152.0
-    self.length = (self.filesize / self.framelength) * (self.samplesperframe / self.samplerate)
-
-    # found a valid MPEG file
-    self.valid = 1
-
-  def _parse_xing(self, file):
-    """Parse the Xing-specific header.
-
-    For variable-bitrate (VBR) MPEG files, Xing includes a header which
-    can be used to approximate the (average) bitrate and the duration
-    of the file.
-    """
-    file.seek(0, 0)
-    header = file.read(128)
-
-    i = string.find(header, 'Xing')
-    if i > 0:
-      (flags,) = struct.unpack('>i', header[i+4:i+8])
-      if flags & 3:
-        # flags says "frames" and "bytes" are present. use them.
-        (frames,) = struct.unpack('>i', header[i+8:i+12])
-        (bytes,) = struct.unpack('>i', header[i+12:i+16])
-
-        if self.samplerate:
-          self.length = frames * self.samplesperframe / self.samplerate
-          self.bitrate = (bytes * 8.0 / self.length) / 1000
-
-  def _parse_id3(self, file):
-    "Parse the ID3 tag information from the file."
-
-    try:
-      file.seek(-128, 2)	# 128 bytes before the end of the file
-    except IOError:
-      pass
-    
-    if file.read(3) == 'TAG':
-      self.title = strip_zero(file.read(30))
-      self.artist = strip_zero(file.read(30))
-      self.album = strip_zero(file.read(30))
-      self.year = strip_zero(file.read(4))
-
-      # a la ID3v1.1 w/ backwards compatiblity to ID3v1
-      comment = file.read(30)
-      if comment[28] == '\0':
-        self.track = ord(comment[29])
-        comment = comment[:28]
-      else:
-        self.track = None
-      self.comment = strip_zero(comment)
-
-      genre = ord(file.read(1))
-      if genre < len(_genres):
-        self.genre = _genres[genre]
-      else:
-        self.genre = None
 
 class OggInfo:
   """Extra information about an Ogg Vorbis file.
@@ -982,35 +759,35 @@ class OggInfo:
             self.vendor = val
         elif key == 'TRACKNUMBER':
             self.track = val
-    self.valid = 1
- 
+        elif key == 'COMMENT':
+            self.comment = val
+        elif key == 'TRANSCODED':
+            self.transcoded = val
 
-def strip_zero(s):
-  l = len(s) - 1
-  while l >= 0 and (s[l] == '\0' or s[l] == ' '):
-    l = l - 1
-  return s[:l+1]
+    self.valid = 1
+  
+
 
 def _usable_file(fname):
   return fname[0] != '.'
-
+    
 def sort_dir(d):
   l = filter(_usable_file, os.listdir(d))
   l.sort()
   return l
-
+    
 def dot2int(dotaddr):
   a, b, c, d = map(int, string.split(dotaddr, '.'))
   return (a << 24) + (b << 16) + (c << 8) + (d << 0)
-
-
+    
+    
 DAYS_NEW = 30   ### make this a config option
-
-class Messages:
+    
+class Messages(Server):
   def debug_message(self, message):
     if debug_level == '1':
       print message
-
+    
 # return empty string or a "new since..." string
 def check_new(ctime):
   if (time.time() - ctime) < DAYS_NEW * 86400:
@@ -1066,10 +843,17 @@ if __name__ == '__main__':
     fname = 'edna.conf'
 
   svr = Server(fname)
+  if oggSupport == 'yes':
+  	print 'Ogg Vorbis support enabled'
+  else:
+  	print 'Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules'
 
   print "edna: serving on port %d..." % svr.port
-  svr.serve_forever()
-
+  try:
+  	svr.serve_forever()
+  except KeyboardInterrupt:
+  	print "\nKeyboard interrupt --> exit."
+	sys.exit(0)
 
 ##########################################################################
 #
@@ -1098,6 +882,4 @@ if __name__ == '__main__':
 #
 # provide a mechanism for serving misc. files (e.g CSS files)
 #
-# make resolved name available for stats.ezt (Lord Satan)
 #
-
