@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.32 2001/02/21 00:32:34 gstein Exp $
+#   $Id: edna.py,v 1.33 2001/02/21 01:33:39 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -222,7 +222,10 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.output_style = 'xml'
 
     if not path:
-      subdirs = map(lambda x: (x[1], x[1]+'/', 0), self.system.dirs)
+      subdirs = [ ]
+      for d, name in self.system.dirs:
+        subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
+                                 text=cgi.escape(name)))
       self.display_page(TITLE, subdirs, skiprec=1)
     elif path[0] == 'stats':
       # the site statistics were requested
@@ -283,13 +286,22 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       thisdirlen = len(thisdir)
 
       for name in sort_dir(curdir):
-        st_ctime = os.stat(os.path.join(curdir, name))[stat.ST_CTIME]
+        href = urllib.quote(name)
+        is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_CTIME])
 
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
+
         if picture_extensions.has_key(ext):
-          pictures.append((base, name, st_ctime))
+          pictures.append(_datablob(href=href, is_new=is_new))
           continue
+
+        if ext == '.m3u':
+          playlists.append(_datablob(href=href, is_new=is_new,
+                                     text=cgi.escape(base)))
+          continue
+
+        fullpath = os.path.join(curdir, name)
         if extensions.has_key(ext):
           # if a song has a prefix that matches the directory, and something
           # exists after that prefix, then strip it. don't strip if the
@@ -302,19 +314,19 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if match:
               base = match.group(1)
 
-          file = open(curdir + '/' + name, 'rb')
-          if file:
-            info = MP3Info(file)
-            if info.valid:
-              info.text = base
-              base = info
-          songs.append((base, name, st_ctime))
-        elif ext == '.m3u':
-          playlists.append((base, name, st_ctime))
+          d = _datablob(href=href, is_new=is_new, text=cgi.escape(base))
+
+          info = MP3Info(open(fullpath, 'rb'))
+          if info.valid:
+            d.info = info
+
+          songs.append(d)
         else:
           newdir = os.path.join(curdir, name)
-          if os.path.isdir(newdir):
-            subdirs.append((name, name + '/', st_ctime))
+          if os.path.isdir(fullpath):
+            subdirs.append(_datablob(href=href + '/', is_new=is_new,
+                                     text=cgi.escape(name)))
+
       self.display_page(TITLE, subdirs, pictures, songs, playlists)
 
   def display_stats(self):
@@ -362,47 +374,16 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     data = { 'title' : title,
              'links' : self.tree_position(),
-             'pictures' : [ ],
-             'subdirs' : [ ],
-             'songs' : [ ],
-             'playlists' : [ ],
+             'pictures' : pictures,
+             'subdirs' : subdirs,
+             'songs' : songs,
+             'playlists' : playlists,
              }
 
     if not skiprec:
       data['display-recursive'] = 'yes'
     else:
       data['display-recursive'] = ''
-
-    for text, href, ctime in pictures:
-      d = _datablob()
-      d.href = urllib.quote(href)
-      d.is_new = check_new(ctime)
-      data['pictures'].append(d)
-
-    for text, href, ctime in subdirs:
-      d = _datablob()
-      d.href = urllib.quote(href)
-      d.text = cgi.escape(text)
-      d.is_new = check_new(ctime)
-      data['subdirs'].append(d)
-
-    for text, href, ctime in songs:
-      d = _datablob()
-      d.href = urllib.quote(href)
-      if isinstance(text, MP3Info):
-        d.text = cgi.escape(text.text)
-        d.info = text
-      else:
-        d.text = cgi.escape(text)
-      d.is_new = check_new(ctime)
-      data['songs'].append(d)
-
-    for text, href, ctime in playlists:
-      d = _datablob()
-      d.href = urllib.quote(href)
-      d.text = cgi.escape(text)
-      d.is_new = check_new(ctime)
-      data['playlists'].append(d)
 
     template.generate(self.wfile, data)
 
@@ -640,7 +621,9 @@ class ClientAbortedException(Exception):
   pass
 
 class _datablob:
-  pass
+  def __init__(self, **args):
+    self.__dict__.update(args)
+
 
 _genres = [
   "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
@@ -956,6 +939,9 @@ if __name__ == '__main__':
 #
 # server-side playlist construction
 # persistent playlists (Todd Rowe <trowe@soleras.com>)
+# per-user, persistent playlists (Pétur Rúnar Guðnason <prg@margmidlun.is>)
+#   e.g. log in and pick up your playlists
+#
 # pass an MP3 (or playlist) off to a server-side player. allows remote
 #   control of an MP3 jukebox/player combo.
 #
@@ -968,4 +954,8 @@ if __name__ == '__main__':
 #              self.wfile.write('<%s>%s</%s>'
 #                               % (cgi.escape(key), cgi.escape('%s' % (val)),
 #                                  cgi.escape(key)))
+#
+# community building (Pétur Rúnar Guðnason <prg@margmidlun.is>)
+#    - most popular songs / directories
+#    - comments on songs / directories
 #
