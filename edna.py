@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.59 2003/02/08 19:17:50 kgk Exp $
+#   $Id: edna.py,v 1.60 2003/02/08 20:14:34 kgk Exp $
 #
 
 __version__ = '0.4'
@@ -921,8 +921,10 @@ def run_server(fname):
   global running, config_needed, oggSupport
 
   if signalSupport == 'yes':
-    signal.signal(signal.SIGHUP, sighup_handler)
-    signal.signal(signal.SIGTERM, sigterm_handler)
+    if 'SIGHUP' in dir(signal):
+      signal.signal(signal.SIGHUP, sighup_handler)
+    if 'SIGTERM' in dir(signal):
+      signal.signal(signal.SIGTERM, sigterm_handler)
 
   svr = Server(fname)
   if oggSupport == 'yes':
