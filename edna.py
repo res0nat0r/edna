@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.31 2001/02/20 13:41:26 gstein Exp $
+#   $Id: edna.py,v 1.32 2001/02/21 00:32:34 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -780,20 +780,18 @@ class MP3Info:
     #original =       (bytes >> 2)  & 1  # L    00 = copy, 01 = original
     #emphasis =       (bytes >> 0)  & 3  # MM   00 = none, 01 = 50/15 ms, 10 = res, 11 = CCIT J.17
 
+    if mpeg_version == 1 or layer == 0:
+      # invalid frame header.
+      return
+
     if mpeg_version == 0:
       self.mpeg_version = 2.5
     elif mpeg_version == 2: 
       self.mpeg_version = 2
-    elif mpeg_version == 3:
+    else: # mpeg_version == 3
       self.mpeg_version = 1
-    else:
-      # invalid frame header.
-      return
 
     self.layer = 4 - layer
-    if self.layer == 0:
-      # invalid frame header
-      return
 
     self.bitrate = _bitrates[mpeg_version & 1][self.layer - 1][bitrate]
     self.samplerate = _samplerates[mpeg_version][samplerate]
