@@ -1,0 +1,71 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+  <head>
+    <title>Anonymous CVS Access</title>
+  </head>
+
+  <body background="images/chalk.jpg">
+    <h1>Anonymous CVS Access</h1>
+
+    <p>
+      The latest <a href="./">edna</a> sources are available
+      through anonymous CVS access.
+    </p>
+    <p>
+      You'll need CVS, at least version 1.9. Clients should be
+      available for most operating systems. Check out
+      <a href="http://www.cvshome.org/"><i>CVS Home</i></a> for more
+      information about CVS.
+    </p>
+
+    <h3>Initial Download</h3>
+    <p>
+      Here are the instructions for logging into the CVS server and
+      performing the initial checkout (download) of the
+      <strong>edna</strong> sources:
+    </p>
+    <p>
+      <code>
+	%&nbsp;cvs&nbsp;-d&nbsp;:pserver:anoncvs@cvs.lyra.org:/home/cvsroot&nbsp;login
+      </code>
+      <br>
+      <i>You will be prompted for the password. Use "anoncvs".</i>
+      <br>
+      <code>
+	%&nbsp;cvs&nbsp;-z6&nbsp;-d&nbsp;:pserver:anoncvs@cvs.lyra.org:/home/cvsroot&nbsp;checkout&nbsp;edna
+      </code>
+    </p>
+    <p>
+      Familiarity with CVS is assumed; if you need assistance, then
+      please send mail to the
+      <a href="http://www.lyra.org/mailman/listinfo/edna"><i>edna mailing list</i></a>.
+    </p>
+
+    <h3>Getting Updates</h3>
+    <p>
+      To periodically grab the latest sources, "cd" into
+      the <code>edna</code> directory and execute:
+    </p>
+    <p>
+      <code>
+	%&nbsp;cvs&nbsp;-z6&nbsp;-q&nbsp;update&nbsp;-P&nbsp;-d
+      </code>
+    </p>
+
+    <h3>Viewing CVS via the Web</h3>
+    <p>
+      You can also
+      <a href="/cgi-bin/viewcvs.cgi/edna/">view the CVS repository</a> 
+      via your web browser. We are using the
+      <a href="/viewcvs/"><i>ViewCVS</i></a>
+      software.
+    </p>
+
+    <hr>
+    <address><a href="mailto:gstein@lyra.org">Greg Stein</a></address>
+<!-- Created: Wed Feb 10 00:54:30 PST 1999 -->
+<!-- hhmts start -->
+Last modified: Fri Dec  3 03:44:02 PST 1999
+<!-- hhmts end -->
+  </body>
+</html>
