@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.16 2001/02/19 12:23:22 gstein Exp $
+#   $Id: edna.py,v 1.17 2001/02/19 12:36:45 gstein Exp $
 #
 
 import SocketServer
@@ -327,6 +327,10 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                      '<body><h1>%s</h1>\n'
                      % (cgi.escape(title), cgi.escape(title))
                      )
+
+    links = self.tree_position()
+    self.wfile.write(links)
+
     self.display_html_list('Pictures', pictures)
     self.display_html_list('Subdirectories', subdirs, skiprec)
     self.display_html_list('Songs', songs)
@@ -334,10 +338,25 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     if not subdirs and not songs and not playlists:
       self.wfile.write('<i>Empty directory</i>\n')
+    else:
+      self.wfile.write(links)
 
     self.wfile.write('<p><a href="/stats/">Server statistics</a></p>')
     self.wfile.write(FOOTER)
     self.wfile.write('</body></html>\n')
+
+  def tree_position(self):
+    treepos = '<p><a href="' + self.build_url('','') + '">HOME</a>\n'
+    mypath = self.translate_path()
+    last = len(mypath)
+    position = ''
+    for count in range(last):
+      position = position + '/' + mypath[count]
+      if count + 1 < last:
+        treepos = treepos + '<b> / </b><a href="' + self.build_url(urllib.quote(position),'') + '">' + mypath[count] + '</a>\n'
+      else:
+        treepos = treepos + '<b> : </b><b>' + mypath[count] + '</b>\n'
+    return treepos + '</p>'
 
   def display_html_list(self, title, list, skipall=0):
     if list:
