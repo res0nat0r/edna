@@ -1,0 +1,35 @@
+<html><head><title>edna: Site Statistics</title>
+<!-- CSS stuff goes here -->
+</head><body><h1>edna: Site Statistics</h1>
+
+[if-any users]
+  <h2>User activity</h2>
+  <table border="1">
+  [for users]
+    <tr>
+      <td>[users.ip]</td>
+      <td>[users.time]</td>
+      <td>[users.fname]</td>
+    </tr>
+  [end]
+  </table>
+[else]
+  <h3>No user activity has been logged</h3>
+[end]
+
+[if-any ips]
+  <h2>Unique IPs</h2>
+  <table border="1">
+  [for ips]
+    <tr>
+      <td>[ips.ip]</td>
+      <td>[ips.count] songs downloaded</td>
+      <td>[ips.time]</td>
+    </tr>
+  [end]
+  </table>
+[end]
+
+<hr>
+<center>Powered by <a href="http://edna.sourceforge.net/">edna</a></center>
+</body></html>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<edna>
+
+[if-any pictures]
+  [for pictures]
+    <picture>
+      <href>[pictures.href]</href>
+    </picture>
+  [end]
+[end]
+
+[if-any subdirs]
+  [for subdirs]
+    <subdirectory>
+      <href>[subdirs.href]</href>
+      <text>[subdirs.text]</text>
+    </subdirectory>
+  [end]
+  [if-any display-recursive]
+    <playlist>
+      <href>allrecursive.m3u</href>
+      <text>Play all songs (recursively)</text>
+    </playlist>
+    <playlist>
+      <href>shufflerecursive.m3u</href>
+      <text>Shuffle all songs (recursively)</text>
+    </playlist>
+  [end]
+[end]
+
+[if-any songs]
+  [for songs]
+    <song>
+      <href>[songs.href].m3u</href>
+      <text>[songs.text]</text>
+      <!-- TODO: insert MP3 info here -->
+    </song>
+  [end]
+  [if-any display-recursive]
+    <playlist>
+      <href>all.m3u</href>
+      <text>Play all songs</text>
+    </playlist>
+    <playlist>
+      <href>shuffle.m3u</href>
+      <text>Shuffle all songs</text>
+    </playlist>
+  [end]
+[end]
+
+[if-any playlists]
+  [for playlists]
+    <playlist>
+      <href>[playlists.href]</href>
+      <text>[playlists.text]</text>
+    </playlist>
+  [end]
+[end]
+
+</edna>

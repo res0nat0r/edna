@@ -10,12 +10,12 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: ezt.py,v 1.2 2001/02/19 22:25:03 gstein Exp $
+#   $Id: ezt.py,v 1.3 2001/02/20 10:47:04 gstein Exp $
 #
 
 import string
 import re
-from types import StringType
+from types import StringType, IntType, FloatType
 
 _re_parse = re.compile('(\[[-\w. ]+\])|(\[\[\])')
 
@@ -157,11 +157,17 @@ def _get_value(refname, ref, ctx):
     ob = ctx.data[ref[0]]
   else:
     raise UnknownReference(refname)
+
+  # walk the dotted ref
   for attr in ref[1:]:
     try:
       ob = getattr(ob, attr)
     except AttributeError:
       raise UnknownReference(refname)
+
+  # make sure we return a string.  ### other types?
+  if isinstance(ob, IntType) or isinstance(ob, FloatType):
+    return str(ob)
   return ob
 
 class _context:

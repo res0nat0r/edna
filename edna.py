@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.27 2001/02/20 09:51:52 gstein Exp $
+#   $Id: edna.py,v 1.28 2001/02/20 10:47:04 gstein Exp $
 #
 
 import SocketServer
@@ -65,8 +65,6 @@ except ImportError:
     sys.exit(1)
   mixin = SocketServer.ForkingMixIn
 
-### move to a system variable. 
-default_template = None
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
   def __init__(self, fname):
@@ -105,17 +103,23 @@ class PseudoRequestHandler:
     d['port'] = '8080'
     d['binding-hostname'] = ''
     d['log'] = ''
+    d['template-dir'] = 'templates'
+    d['template'] = 'default.ezt'
 
     config.read(fname)
-    global default_template
+
     template_path = config.get('server', 'template-dir')
     template_file = config.get('server', 'template')
-    if not os.path.isabs(template_path):
-      default_template = ezt.Template(
-        os.path.join(os.path.join(os.path.split(fname)[0], template_path), template_file))
-    else:
-      default_template = ezt.Template(
-        os.path.join(template_path, template_file))
+    template_path = os.path.join(os.path.dirname(fname), template_path)
+
+    tfname = os.path.join(template_path, template_file)
+    self.default_template = ezt.Template(tfname)
+
+    tfname = os.path.join(template_path, 'style-xml.ezt')
+    self.xml_template = ezt.Template(tfname)
+
+    tfname = os.path.join(template_path, 'stats.ezt')
+    self.stats_template = ezt.Template(tfname)
 
     self.dirs = [ ]
     dirs = [ ]
@@ -159,49 +163,24 @@ class PseudoRequestHandler:
       if not entry in self.acls:
         self.acls.append(entry)
 
-    try:
-      self.css_url = string.strip(config.get('server', 'stylesheet-url'))
-    except ConfigParser.NoOptionError:
-      self.css_url = None
-    try:
-      self.css_text = string.strip(config.get('server', 'stylesheet-text'))
-    except ConfigParser.NoOptionError:
-      self.css_text = None
-
   def __call__(self, request, client_address, server):
     return EdnaRequestHandler(request, client_address, server, self)
 
-  def log_user(self, ip, time, fname):
+  def log_user(self, ip, tm, fname):
     if len(self.userLog) > 19:
       # delete the oldest entry
       self.userLog.pop(0)
 
     # append it to the queue
-    self.userLog.append((ip, time, fname))
+    self.userLog.append((ip, tm, fname))
 
     if ip not in self.userIPs.keys():
       # add the entry for the first time
-      self.userIPs[ip] = (1, time)
+      self.userIPs[ip] = (1, tm)
     else: 
       # increment the count and add the most recent time
       count, oldTime = self.userIPs[ip]
-      self.userIPs[ip] = (count + 1, time)
-
-  def print_users(self):
-    string = '<h2>Site Statistics</h2>\n<table border=\"1\">\n'
-    for x in range(len(self.userLog)):
-      ip, time, fname = self.userLog[-x-1]
-      string = string + '<tr><td>'+ ip + '</td><td>' + time + '</td><td>' \
-               + fname + "</td></tr>\n"
-    string = string + '</tr></table>\n'
-    string = string + '<h3>Unique IPs</h3>\n<table border=\"1\">\n'
-    for x in self.userIPs.keys():
-      count, time = self.userIPs[x]
-      string = string + '<tr><td>' + x + '</td><td>' \
-               + ("%d songs downloaded" % count) + '</td><td>' + time \
-               + "</td></tr>\n"
-    string = string + '</tr></table>\n'
-    return string
+      self.userIPs[ip] = (count + 1, tm)
 
   def acl_ok(self, ipaddr):
     if not self.acls:
@@ -246,11 +225,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.display_page(TITLE, subdirs, skiprec=1)
     elif path[0] == 'stats':
       # the site statistics were requested
-      self.send_response(200)
-      self.send_header("Content-Type", "text/html")
-      self.end_headers()
-      self.wfile.write(self.system.print_users())
-      return
+      self.display_stats()
     else:
       for d, name in self.system.dirs:
         if path[0] == name:
@@ -284,10 +259,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if os.path.isfile(pathname):
           # requested a file.
           ip, port = self.client_address
-          self.system.log_user(ip,
-                               time.strftime("%B %d %I:%M:%S %p",
-                                             time.localtime(time.time())),
-                               pathname)
+          self.system.log_user(ip, time.time(), pathname)
           self.serve_file(p, pathname, url)
           return
 
@@ -344,15 +316,48 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             subdirs.append((name, name + '/'))
       self.display_page(TITLE, subdirs, pictures, songs, playlists)
 
-  def display_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
-    if self.output_style == 'xml':
-      self.display_xml_page(title, subdirs, pictures, songs, playlists, skiprec)
-    else:
-      self.display_html_page(title, subdirs, pictures, songs, playlists, skiprec)
-
-  def display_html_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
+  def display_stats(self):
     self.send_response(200)
-    self.send_header("Content-Type", "text/html")
+    self.send_header("Content-Type", 'text/html')
+    self.end_headers()
+
+    data = { 'users' : [ ],
+             'ips' : [ ],
+             }
+
+    user_log = self.system.userLog
+    for i in range(len(user_log) - 1, -1, -1):
+      d = _datablob()
+      d.ip, tm, fname = user_log[i]
+      d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
+      d.fname = cgi.escape(fname)
+      data['users'].append(d)
+
+    ip_log = self.system.userIPs
+    ips = ip_log.keys()
+    ips.sort()
+    for ip in ips:
+      d = _datablob()
+      d.ip = ip
+      d.count, tm = ip_log[ip]
+      d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
+      data['ips'].append(d)
+
+    self.system.stats_template.generate(self.wfile, data)
+
+  def display_page(self, title, subdirs, pictures=[], songs=[], playlists=[],
+                   skiprec=0):
+
+    ### implement a URL-selectable style here with a cache of templates
+    if self.output_style == 'html':
+      template = self.system.default_template
+      content_type = 'text/html'
+    else: # == 'xml'
+      template = self.system.xml_template
+      content_type = 'text/xml'
+
+    self.send_response(200)
+    self.send_header("Content-Type", content_type)
     self.end_headers()
 
     data = { 'title' : title,
@@ -395,7 +400,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       d.text = cgi.escape(text)
       data['playlists'].append(d)
 
-    default_template.generate(self.wfile, data)
+    template.generate(self.wfile, data)
 
   def tree_position(self):
     ### fix: if current position is HOME, then return nothing...
@@ -411,49 +416,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       else:
         treepos = treepos + '<b> : </b><b>' + mypath[count] + '</b>\n'
     return treepos + '</p>'
-
-  def display_xml_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
-    self.send_response(200)
-    self.send_header("Content-Type", "text/xml")
-    self.end_headers()
-
-    self.wfile.write('<?xml version="1.0" encoding="ISO-8859-1"?>\n'
-                     '<edna>\n')
-    ### handle the pictures
-    self.display_xml_list('subdirectory', subdirs, skiprec)
-    self.display_xml_list('song', songs)
-    self.display_xml_list('playlist', playlists)
-
-    self.wfile.write('</edna>\n')
-
-  def display_xml_list(self, title, list, skipall=0):
-    if list:
-      for text, href in list:
-        href = urllib.quote(href)
-        if title == 'song':
-          href = href + '.m3u'
-        ### add download links for songs? or stick with just streaming?
-        if isinstance(text, MP3Info):
-          self.wfile.write('<%s><href>%s</href>' % (title, href))
-          for key, val in vars(text).items():
-            if key != "valid" and val != None:
-              self.wfile.write('<%s>%s</%s>'
-                               % (cgi.escape(key), cgi.escape('%s' % (val)), cgi.escape(key)))
-          self.wfile.write('</%s>\n' % (title))
-        else:
-          self.wfile.write('<%s><href>%s</href><text>%s</text></%s>\n'
-                           % (title, href, cgi.escape(text), title))
-      if not skipall:
-        if title == 'song':
-          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
-                           % ("all.m3u", "Play all songs"))
-          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
-                           % ("shuffle.m3u", "Shuffle all songs"))
-        elif title == 'subdirectory' : 
-          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
-                           % ("allrecursive.m3u", "Play all songs (recursively)"))
-          self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
-                           % ("shufflerecursive.m3u", "Shuffle all songs (recursively)"))
 
   def make_list(self, fullpath, url, recursive, shuffle, songs=None):
     # This routine takes a string for 'fullpath' and 'url', a list for
@@ -933,4 +895,10 @@ if __name__ == '__main__':
 # from "Daniel Carraher" <dcarrahe@biochem.umass.edu>:
 #   OGG Vorbis files? anything beyond the extension?
 #
-
+# add MP3 info into the style-xml.ezt template
+#          for key, val in vars(text).items():
+#            if key != "valid" and val != None:
+#              self.wfile.write('<%s>%s</%s>'
+#                               % (cgi.escape(key), cgi.escape('%s' % (val)),
+#                                  cgi.escape(key)))
+#
