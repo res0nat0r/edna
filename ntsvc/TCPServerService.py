@@ -79,15 +79,6 @@ class TCPServerService(win32serviceutil.ServiceFramework):
       tcpargs,
       rh)
     
-  def server_bind(self):
-    # set SO_REUSEADDR (if available on this platform)
-    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
-      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    # we don't need the server name/port, so skip BaseHTTPServer's work
-    ### build_url() uses server.server_name and server.server_port
-    SocketServer.TCPServer.server_bind(self)
-    
   def SvcStop(self):
     self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
     SetEvent(self.hevSvcStop)

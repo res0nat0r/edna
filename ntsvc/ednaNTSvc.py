@@ -65,6 +65,14 @@ class EdnaSvc(TCPServerService.TCPServerService,
       # You might want to have a maximum time out here to force a shutdown
       # if for example it we've gone 5+ min, and we still have some threads
       # that still haven't shutdown.
+      
+  def server_bind(self):
+    # set SO_REUSEADDR (if available on this platform)
+    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
+      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    BaseHTTPServer.HTTPServer.server_bind(self)
+    
     
 ConfigFileNotFound = "ConfigFileNotFound"
 
