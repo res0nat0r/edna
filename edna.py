@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.20 2001/02/19 13:13:17 gstein Exp $
+#   $Id: edna.py,v 1.21 2001/02/19 18:09:49 gstein Exp $
 #
 
 import SocketServer
@@ -807,29 +807,35 @@ class MP3Info:
       pass
     
     if file.read(3) == 'TAG':
-      self.title = string.strip(file.read(30))
-      self.artist = string.strip(file.read(30))
-      self.album = string.strip(file.read(30))
-      self.year = string.strip(file.read(4))
+      self.title = strip_zero(file.read(30))
+      self.artist = strip_zero(file.read(30))
+      self.album = strip_zero(file.read(30))
+      self.year = strip_zero(file.read(4))
 
       # a la ID3v1.1 w/ backwards compatiblity to ID3v1
       comment = file.read(30)
-      if comment[29] == '0':
-        self.track = comment[30]
+      if comment[28] == '\0':
+        self.track = ord(comment[29])
         comment = comment[:28]
       else:
         self.track = None
-      self.comment = string.strip(comment)
+      self.comment = strip_zero(comment)
 
       genre = ord(file.read(1))
       if genre < len(_genres):
         self.genre = _genres[genre]
       else:
-        self.genre = 'unknown'
+        self.genre = None
 
     self.valid = 1
 
     file.seek(0, 0)
+
+def strip_zero(s):
+  l = len(s) - 1
+  while l >= 0 and (s[l] == '\0' or s[l] == ' '):
+    l = l - 1
+  return s[:l+1]
 
 def _usable_file(fname):
   return fname[0] != '.'
