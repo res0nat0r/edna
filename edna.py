@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.49 2002/09/25 15:17:20 halux2001 Exp $
+#   $Id: edna.py,v 1.50 2002/09/25 16:53:58 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -105,8 +105,12 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     template_file = config.get('server', 'template')
     template_path = os.path.join(os.path.dirname(fname), template_path)
 
-    debug_level = config.get('extra', 'debug_level')
-    if debug_level == '1':
+    global debug_level
+    debug_level = config.getint('extra', 'debug_level')
+    global DAYS_NEW
+    DAYS_NEW = config.getint('extra', 'days_new')
+    
+    if debug_level == 1:
       print 'Running in debug mode'
 
     tfname = os.path.join(template_path, template_file)
@@ -236,7 +240,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
               this_user, this_pass = name, password
 
       if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
-        Messages.debug_message('DEBUG --- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
+        Messages().debug_message('DEBUG --- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
       else:
         realm='edna'
         self.send_response(401)
@@ -626,7 +630,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       except ValueError:
         break
       if idx == 0:
-        Messages.debug_message('DEBUG --- Warning in translate_path --- Illegal path: the \'..\' attempted to go above the root')
+        Messages().debug_message('DEBUG --- Warning in translate_path --- Illegal path: the \'..\' attempted to go above the root')
         return None
       del parts[idx-1:idx+1]
     return parts
@@ -781,12 +785,9 @@ def dot2int(dotaddr):
   a, b, c, d = map(int, string.split(dotaddr, '.'))
   return (a << 24) + (b << 16) + (c << 8) + (d << 0)
     
-    
-DAYS_NEW = 30   ### make this a config option
-    
-class Messages(Server):
+class Messages:
   def debug_message(self, message):
-    if debug_level == '1':
+    if debug_level == 1:
       print message
     
 # return empty string or a "new since..." string
@@ -848,7 +849,7 @@ if __name__ == '__main__':
   	print 'Ogg Vorbis support enabled'
   else:
   	print 'Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules'
-
+  
   print "edna: serving on port %d..." % svr.port
   try:
   	svr.serve_forever()
@@ -883,4 +884,5 @@ if __name__ == '__main__':
 #
 # provide a mechanism for serving misc. files (e.g CSS files)
 #
+# check_new(ctime) is wrong
 #

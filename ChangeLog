@@ -1,14 +1,14 @@
 Changes since 0.4
 
+  - "New since $DATE" is now available as a config option
   - don't log requests for picture_extensions
   - Experimental ID3-Tag support (in default_complex.ezt template)
     Known problems:
-				- doesn't work with ogg, a workaround is included, MP3Info is used not OggInfo because OggInfo doesn't has songs.info.mpeg.* informations)
-				- with some of my mp3 files I get a MemoryError exception --> catch and print warning
+                  - doesn't work with ogg, a workaround is included, MP3Info is used not OggInfo because OggInfo doesn't has songs.info.mpeg.* informations)
+                  - with some of my mp3 files I get a MemoryError exception --> catch and print warning
   - Catch KeyboardInterrupt exception and print a exit message.
   - Debug messages and a config option to enable them
   - Urls are now linked and unquoted in the status page
-  - _MP3_HEADER_SEEK_LIMIT is now 4000 to prevent problems with some mp3 files
   - Simple Ogg Vorbis support
   - Internal: support for Basic Authentication within _perform_GET
   - Internal: support for seeking (HTTP1.1 Range Requests)
