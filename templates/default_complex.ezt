@@ -51,44 +51,44 @@
   <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
   <tr bgcolor="#d1d5d7"><th>Songs</th></tr>
   <tr><td>
-  <table border=1>
-    <tr align="center" style="font-weight:bold;font-size:75%;">
+  <table border=1 width="100%" cellpadding=2>
+    <tr align="center" cellpadding=0 cellspacing=0 style="font-weight:bold;font-size:75%;">
       <td>Filename</td>
       <td>Disc</td>
       <td>Track</td>
       <td>Title</td>
       <td>Artist</td>
-      <td>Compiler</td>
+      <td>Composer</td>
       <td>Album</td>
       <td>Year</td>
       <td>Genre</td>
-      <td>Length (sec)</td>
-      <td>Size (kb)</td>
-      <td>Bitrate (kbps)</td>
-      <td>Samplerate (kHz)</td>
+      <td>Length</td>
+      <td>Size</td>
+      <td>Bitrate</td>
+      <td>Samplerate</td>
       <td>Mode</td>
-      <td>Mode Extension</td>
-      <td>Newness</td>
+      <td>Mode Ext.</td>
+      <!-- <td>Newness</td> -->
     </tr>
   
   [for songs]
     <tr align="right" style="font-size:75%;font-family:sans-serif;">
-      <td align="left"><a href="[songs.href].m3u">[songs.text]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.disc]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.track]</a>&nbsp;</td>
-      <td align="left"><a href="[songs.href].m3u">[songs.info.title]</a>&nbsp;</td>
-      <td align="left"><a href="[songs.href].m3u">[songs.info.artist]</a>&nbsp;</td>
-      <td align="left"><a href="[songs.href].m3u">[songs.info.composer]</a>&nbsp;</td>
-      <td align="left"><a href="[songs.href].m3u">[songs.info.album]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.year]</a>&nbsp;</td>
-      <td align="left"><a href="[songs.href].m3u">[songs.info.genre]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.mpeg.length]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.mpeg.filesize]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.mpeg.bitrate]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.info.mpeg.samplerate]</a>&nbsp;</td>
-      <td align="center"><a href="[songs.href].m3u">[songs.info.mpeg.mode]</a>&nbsp;</td>
-      <td align="center"><a href="[songs.href].m3u">[songs.info.mpeg.mode_extension]</a>&nbsp;</td>
-      <td><a href="[songs.href].m3u">[songs.is_new]</a>&nbsp;</td>
+      <td align="left"><a href="[songs.href].m3u">[songs.text]</td>
+      <td>[songs.info.disc]</td>
+      <td>[songs.info.track]&nbsp;</td>
+      <td align="left">[songs.info.title]&nbsp;</td>
+      <td align="left">[songs.info.artist]&nbsp;</td>
+      <td align="left">[songs.info.composer]&nbsp;</td>
+      <td align="left">[songs.info.album]</td>
+      <td>[songs.info.year]&nbsp;</td>
+      <td align="left">[songs.info.genre]</td>
+      <td>[songs.info.mpeg.length] min.</td>
+      <td>[songs.info.mpeg.filesize2] MB</td>
+      <td>[songs.info.mpeg.bitrate] kbps</td>
+      <td>[songs.info.mpeg.samplerate] kHz&nbsp;</td>
+      <td align="center">[songs.info.mpeg.mode]</td>
+      <td align="center">[songs.info.mpeg.mode_extension]</td>
+      <!-- <td>[songs.is_new]</a>&nbsp;</td> -->
     </tr>
   [end]
   </table>

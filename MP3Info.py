@@ -267,8 +267,11 @@ class MPEG:
         self.valid = 0
 
         file.seek(0, 2)
-        self.filesize = file.tell()
-        file.seek(0, 0)
+	self.filesize = float(file.tell())
+	# this is used on the web page
+	self.filesize2 = round(float(self.filesize/1024/1024), 2)
+        
+	file.seek(0, 0)
 
         self.version = 0
         self.layer = 0
@@ -384,7 +387,10 @@ class MPEG:
         else:
             self.framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
             self.samplesperframe = 1152.0
-        self.length = int(round((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate)))
+        self.length_minutes = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) / 60)
+	self.length_seconds = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) % 60)
+	
+	self.length = float(str(self.length_minutes) + '.' + str(self.length_seconds))
 
         self.valid = 1
 
