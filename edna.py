@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.35 2001/02/21 09:48:07 gstein Exp $
+#   $Id: edna.py,v 1.36 2001/02/21 10:59:25 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -439,28 +439,35 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     return songs
 
-  def open_playlist(self, fullpath):
-    ### revamp this. use some ideas from Stephen Norris' alternate patch.
-    dir = os.path.dirname(fullpath)
+  def open_playlist(self, fullpath, url):
+    dirpath = os.path.dirname(fullpath)
     f = open(fullpath)
-    buffer = ""
-    for str in f.readlines():
-      if str[:5] == "http:":
-        buffer = buffer + str
-      else:
-        str = str[:-1]
-        str = os.path.normpath(os.path.join(dir, str))
-        if not os.path.exists(str): continue
-        found = 0
-        for d, name in self.server.dirs:
-          if string.lower(str[:len(d)]) == string.lower(d):
-            str = name + str[len(d):]
-            found = 1
-        if not found: continue
-        str = string.replace(str, "\\", "/")
-        buffer = buffer + self.build_url("", str) + "\n"
-    f.close()
-    f = StringIO.StringIO(buffer)
+
+    # if the first line has 'http:' or 'ftp:', then we'll assume all lines
+    # are absolute and just return the open file.
+    check = f.read(5)
+    f.seek(0, 0)
+    if check == 'http:' or check[:4] == 'ftp:':
+      return f
+
+    # they're relative file names. fix them up.
+    output = [ ]
+    for line in f.readlines():
+      line = string.strip(line)
+      if line[:5] == 'http:' or line[:4] == 'ftp:':
+        output.append(line)
+        continue
+      line = os.path.normpath(line)
+      if os.path.isabs(line):
+        self.log_message('bad line in "%s": %s', self.path, line)
+        continue
+      if not os.path.exists(os.path.join(dirpath, line)):
+        self.log_message('file not found (in "%s"): %s', self.path, line)
+        continue
+      line = string.replace(line, "\\", "/")  # if we're on Windows
+      output.append(self.build_url(url, line))
+
+    f = StringIO.StringIO(string.join(output, '\n') + '\n')
     return f
 
   def serve_file(self, name, fullpath, url):
@@ -496,7 +503,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           f = StringIO.StringIO(self.build_url(url, base) + ext + '\n')
           clen = len(f.getvalue())
         else:
-          f = self.open_playlist(fullpath)
+          f = self.open_playlist(fullpath, url)
           clen = len(f.getvalue())
 
     self.send_response(200)
@@ -510,6 +517,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         break
       try:
         self.wfile.write(data)
+      except ClientAbortedException:
+        self.log_message('client closed connection for "%s"', self.path)
+        break
       except socket.error:
         # it was probably closed on the other end
         break
@@ -564,8 +574,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       return
 
     msg = "%s [%s] %s\n" % (self.address_string(),
-                                self.log_date_time_string(),
-                                format % args)
+                            self.log_date_time_string(),
+                            format % args)
     if log == '-':
       sys.stdout.write(msg)
     else:
@@ -611,7 +621,6 @@ class _SocketWriter:
       if v.errno != 32:
         # not a 'Broken pipe'... re-raise the error
         raise
-      print 'NOTICE: Client closed the connection prematurely'
       raise ClientAbortedException
 
 class ClientAbortedException(Exception):
