@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.25 2001/02/19 23:23:31 gstein Exp $
+#   $Id: edna.py,v 1.26 2001/02/19 23:46:37 rassilon Exp $
 #
 
 import SocketServer
@@ -60,9 +60,8 @@ except ImportError:
     sys.exit(1)
   mixin = SocketServer.ForkingMixIn
 
-### move to a system variable. do some better path processing.
-default_template = ezt.Template('templates/default.ezt')
-
+### move to a system variable. 
+default_template = None
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
   def __init__(self, fname):
@@ -103,6 +102,15 @@ class PseudoRequestHandler:
     d['log'] = ''
 
     config.read(fname)
+    global default_template
+    template_path = config.get('server', 'template-dir')
+    template_file = config.get('server', 'template')
+    if not os.path.isabs(template_path):
+      default_template = ezt.Template(
+        os.path.join(os.path.join(os.path.split(fname)[0], template_path), template_file))
+    else:
+      default_template = ezt.Template(
+        os.path.join(template_path, template_file))
 
     self.dirs = [ ]
     dirs = [ ]
