@@ -2,6 +2,11 @@
 <html>
   <head>
     <title>edna -- an MP3 server</title>
+    <style type="text/css"><!--
+      .edna {
+        COLOR: #B00000;
+      }
+    --></style>
   </head>
 
   <body background="images/chalk.jpg">
@@ -19,33 +24,41 @@
     </table>
 
     <p>
-      This is a quick hack that I put together, based on ideas from my
-      friend,
+      <span class="edna">edna</span> is a quick hack that I put
+      together, based on ideas from my friend,
       <a href="http://www.cybersnot.com/"><i>Geoff Elliott</i></a>.
       He had written a program named ampRadio that operates much like
-      <strong>edna</strong> -- serving up HTML pages with links to MP3
-      files, and then serving out those MP3s.
+      <span class="edna">edna</span> -- serving up HTML pages with
+      links to MP3 files, and then serving out those MP3s.
     </p>
 
     <hr width="80&37;">
+    <h2>What is <span class="edna">edna</span>?</h2>
     <p>
-      Please feel free to sign up on the
-      <a href="http://mailman.lyra.org/mailman/listinfo/edna">edna
-      mailing list</a>.
+      <span class="edna">edna</span> allows you to access your MP3
+      collection from any networked computer.  This software streams
+      your MP3s via HTTP to any MP3 player that supports playing off a
+      remote connection (e.g. Winamp, FreeAmp, Sonique, XMMS).
     </p>
-    <hr width="80&37;">
-
     <p>
-      <strong>edna</strong> is currently labeled as <em>version
-	0.4</em> because there are still a few more features that I
-      would like to
-      add. It is <em>very</em> stable and can be used (now) without a
-      problem.
+      <span class="edna">edna</span> supports:
     </p>
+    <ul>
+      <li>Browsing your music collection from a remote computer.</li>
+      <li>URL support to allow people to stream specific songs.</li>
+      <li>
+	Automatic playlist construction for entire directories of
+	songs, including a "shuffle" ability.
+      </li>
+      <li>
+	The merging of multiple music collections while keeping the
+	files on the remote computer.
+      </li>
+    </ul>
 
     <p>
       While any silly web server can do this (serve up MP3s), there
-      are two cool features about <strong>edna</strong>:
+      are two cool features about <span class="edna">edna</span>:
     </p>
     <ul>
       <li>
@@ -65,18 +78,17 @@
     </ul>
 
     <p>
-      When constructing a page for a directory, <strong>edna</strong>
-      will list all subdirectories, MP3 song files (.mp3 extensions),
-      playlists (.m3u extensions), certain other types of music and
-      video files (such as .wav), and images. All other files will be
-      ignored.
+      When constructing a page for a directory,
+      <span class="edna">edna</span> will list all subdirectories, MP3
+      song files (.mp3 extensions), playlists (.m3u extensions),
+      certain other types of music and video files (such as .wav), and
+      images. All other files will be ignored.
     </p>
     <p>
-      <strong>edna</strong> can automatically create play lists for
-      individual
-      directories of songs, and all directories recursively. These
-      lists can also be shuffled (by <strong>edna</strong>, rather
-      than your player).
+      <span class="edna">edna</span> can automatically create play
+      lists for individual directories of songs, and all directories
+      recursively. These lists can also be shuffled (by
+      <span class="edna">edna</span>, rather than your player).
     </p>
     <p>
       Your MP3 player must be able to recognize .m3u files, and your
@@ -85,17 +97,14 @@
       this with WinAmp, which definitely meets these needs.
     </p>
 
-    <p>
-      I'd also like to thank
-      <a href="mailto:lowe@centre.edu">Andy Lowe</a>
-      for submitting the patches for recursive play lists.
-      <a href="mailto:rassilon@lyra.org">Bill Tutt</a> has
-      provided some excellent patches, too; version 0.4 will include
-      his patches to turn <strong>edna</strong> into a Win32 Service.
-    </p>
-
     <hr align=left width="30&#37;">
     <h2>New features in 0.4</h2>
+    <p>
+      <span class="edna">edna</span> is currently labeled as
+      <em>version 0.4</em> because there are still a few more features
+      that I would like to add. It is <em>very</em> stable and can be
+      used (now) without a problem.
+    </p>
     <p>
       Version 0.4 of edna has quite a lot of new features over
       0.3. Most of this work came from submitted patches (thanks
@@ -117,34 +126,50 @@
       <li>Handy directory navigation links</li>
     </ul>
 
+    <p>
+      Please feel free to sign up on the
+      <a href="http://mailman.lyra.org/mailman/listinfo/edna"><i>edna
+      mailing list</i></a>. We discuss new features, installation and
+      configuration issues, and current development.
+    </p>
+
     <hr align=left width="30&#37;">
     <h2>Can I have the source?</h2>
     <p>
-      Sure. <strong>edna</strong> is licensed under the
+      Of course! <span class="edna">edna</span> is licensed under the
       <a href="http://www.fsf.org/copyleft/gpl.html"><i>GPL</i></a>.
       It is a small
       <a href="http://www.python.org/"><i>Python</i></a> script. At
       the moment, it is about 1000 lines (version 0.1
       was only 250!). You can get the source from the
-      <a href="edna-0.3.tar.gz">distribution</a>.
-      <strong>edna</strong> is checked into
-      <a href="anoncvs.html">a CVS repository</a> and is available for 
-      <a href="/cgi-bin/viewcvs.cgi/edna/">viewing with your web 
-	browser</a>.
+      <a href="edna-0.4.tar.gz">distribution</a>.
     </p>
+
+    <dl>
+      <dt><strong>edna CVS information</strong></dt>
+      <dd>
+	<span class="edna">edna</span> is checked into
+	<a href="anoncvs.html">a CVS repository</a> and is also
+	available for <a href="/cgi-bin/viewcvs.cgi/edna/">viewing
+	  with your web browser</a>. You can sign up on the
+	<a href="http://mailman.lyra.org/mailman/listinfo/edna-checkins"><i>edna-checkins
+	  mailing list</i></a>
+	to receive notifications of changes to the CVS repository.
+      </dd>
+    </dl>
+
+    <hr align=left width="30&#37;">
+    <h2>Installation and Use</h2>
     <p>
       The server should work for any platform. I've tested it on
       Linux and Windows. I've been using Internet Explorer and WinAmp
       (on Windows) to navigate the pages and play the files.
     </p>
-
-    <hr align=left width="30&#37;">
-    <h2>Installation and Use</h2>
     <p>
-      Using <strong>edna</strong> is boringly simple. Make sure you
-      have (at least) Python 1.5.2 installed on your system. Edit the
-      <code>edna.conf</code> file with your setup. This is simple to
-      do, as all you need to tell it is:
+      Using <span class="edna">edna</span> is boringly simple. Make
+      sure you have (at least) Python 1.5.2 installed on your
+      system. Edit the <code>edna.conf</code> file with your
+      setup. This is simple to do, as all you need to tell it is:
     </p>
     <ul>
       <li>what port to run on</li>
@@ -166,11 +191,9 @@
     <h3>Running as an NT Service</h3>
     <p>
       Starting with edna 0.4, it is now possible to use
-      <strong>edna</strong> as an NT Service (thanks to Bill Tutt). 
-    </p>
-    <p>
-      You also need the most recent Win32 extensions, and have NT 4.0,
-      or Windows 2000 for this code to work.
+      <span class="edna">edna</span> as an NT Service (thanks to Bill
+      Tutt). You will need the most recent Win32 extensions, and have
+      NT 4.0 or Windows 2000 for this code to work.
     </p>
     <dl>
       <dt><strong>Installation</strong></dt>
@@ -186,11 +209,11 @@
       <dt><strong>Official usage string output by ednaNTSvc.py</strong></dt>
       <dd>
 	<small>
-	  <pre>   Usage: 'ednaNTSvc.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]' 
-   Options for 'install' and 'update' commands only:
-    --username domain\username : The Username the service is to run under
-    --password password : The password for the username
-    --startup [manual|auto|disabled] : How the service starts, default = manual
+	  <pre>Usage: 'ednaNTSvc.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]' 
+Options for 'install' and 'update' commands only:
+ --username domain\username : The Username the service is to run under
+ --password password : The password for the username
+ --startup [manual|auto|disabled] : How the service starts, default = manual
 </pre>
 	</small>
       </dd>
@@ -209,17 +232,39 @@
       <a href="mailto:edna@lyra.org">edna@lyra.org</a>.
     </p>
     <p>
-      <strong>edna</strong> has some code in it to extract ID3 tags
-      from MP3 files. I'm not using it yet, but will add some code to
-      display the data on the generated web pages. If you
-      have a pet feature, then please let me know!
+      <span class="edna">edna</span> has some code in it to extract
+      ID3 tags from MP3 files. I'm not using it yet, but will add some
+      code to display the data on the generated web pages. If you have
+      a pet feature, then please let me know!
     </p>
+
+    <h3>Thanks</h3>
+    <p>
+      I'd like to thank the following people for their contributions
+      to the edna server:
+    </p>
+    <ul>
+      <li>Matteo Bertini: quick navigation links</li>
+      <li>Dieter Deyke: image display and playlist rewriting</li>
+      <li>Jeffrey Griffith: server statistics, edna client, web design</li>
+      <li>Stephen Kennedy: skipping the top-level directory, skip
+	".foo" directories</li>
+      <li>Erno Kuusela: access control</li>
+      <li>Andy Lowe: recursive play lists</li>
+      <li>"Lord Satan": Python 1.6 and later compatibility</li>
+      <li>PK Shiu: the "is new" feature</li>
+      <li>Bill Tutt: NT Service ability, shuffle play, multiple file
+	extensions (and more)</li>
+      <li>"vivake": XML output and extended MP3 info</li>
+      <li>Joe Ward: UI improvements</li>
+      <li>Dave Williams: watch out for single-letter directories</li>
+    </ul>
 
     <hr>
     <address><a href="mailto:gstein@lyra.org">Greg Stein</a></address>
 <!-- Created: Thu Feb 11 06:54:12 PST 1999 -->
 <!-- hhmts start -->
-Last modified: Wed Feb 21 23:25:32 PST 2001
+Last modified: Thu Feb 22 00:00:33 PST 2001
 <!-- hhmts end -->
   </body>
 </html>
