@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.39 2001/02/22 09:54:45 gstein Exp $
+#   $Id: edna.py,v 1.40 2001/05/19 01:51:06 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -929,6 +929,7 @@ extensions = {
   '.669' : 'audio/mid',
   '.asx' : 'video/x-ms-asf',
   '.mpg' : 'video/mpeg',
+  '.ogg' : 'application/x-ogg',
   }
 
 # Extensions of images: (and their MIME type)
@@ -990,3 +991,6 @@ if __name__ == '__main__':
 #
 # provide a mechanism for serving misc. files (e.g CSS files)
 #
+# make resolved name available for stats.ezt (Lord Satan)
+#
+
