@@ -33,7 +33,24 @@
     <song>
       <href>[songs.href].m3u</href>
       <text>[songs.text]</text>
-      <!-- TODO: insert MP3 info here -->
+
+  [# possibly use if-any on each of these before inserting element ]
+      <content-length>[songs.info.filesize]</content-length>
+      <mpeg-version>[songs.info.mpeg_version]</mpeg-version>
+      <layer>[songs.info.layer]</layer>
+      <bit-rate>[songs.info.bitrate]</bit-rate>
+      <sample-rate>[songs.info.samplerate]</sample-rate>
+      <frame-length>[songs.info.framelength]</frame-length>
+      <samples-per-frame>[songs.info.samplesperframe]</samples-per-frame>
+      <length>[songs.info.length]</length>
+      <duration>[songs.info.duration]</duration>
+      <title>[songs.info.title]</title>
+      <artist>[songs.info.artist]</artist>
+      <album>[songs.info.album]</album>
+      <year>[songs.info.year]</year>
+      <track>[songs.info.track]</track>
+      <comment>[songs.info.comment]</comment>
+      <genre>[songs.info.genre]</genre>
     </song>
   [end]
   [if-any display-recursive]
