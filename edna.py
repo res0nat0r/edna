@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.44 2002/09/24 10:04:46 halux2001 Exp $
+#   $Id: edna.py,v 1.45 2002/09/24 11:19:57 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -60,7 +60,10 @@ except ImportError:
 
 error = __name__ + '.error'
 
+
 TITLE = 'Streaming MP3 Server'
+
+
 
 # a pattern used to trim leading digits, spaces, and dashes from a song
 ### would be nice to get a bit fancier with the possible trimming
@@ -87,6 +90,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     config.add_section('server')
     config.add_section('sources')
     config.add_section('acl')
+    config.add_section('extra')
+
 
     # set up some defaults for the web server.
     d = config.defaults()
@@ -101,6 +106,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     template_path = config.get('server', 'template-dir')
     template_file = config.get('server', 'template')
     template_path = os.path.join(os.path.dirname(fname), template_path)
+
+    debug_level = config.get('extra', 'debug_level')
 
     tfname = os.path.join(template_path, template_file)
     self.default_template = ezt.Template(tfname)
@@ -872,7 +879,7 @@ class MP3Info:
 
     if self.bitrate is None or self.samplerate is None:
       # invalid frame header
-      return
+      Messages.debug_message('DEBUG --- Warning: invalid frame header')
 
     self.mode = _modes[mode]
 
@@ -1001,12 +1008,18 @@ def dot2int(dotaddr):
 
 DAYS_NEW = 30   ### make this a config option
 
+class Messages:
+  def debug_message(self, message):
+    if debug_level == 1:
+      print message
+
 # return empty string or a "new since..." string
 def check_new(ctime):
   if (time.time() - ctime) < DAYS_NEW * 86400:
     t = time.strftime('%B %d', time.localtime(ctime))
     return ' <span class="isnew">new since %s</span>' % t
   return ''
+
 
 
 # Extensions that WinAMP can handle: (and their MIME type if applicable)
