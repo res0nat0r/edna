@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.42 2002/09/23 20:14:52 halux2001 Exp $
+#   $Id: edna.py,v 1.43 2002/09/24 08:48:55 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -43,6 +43,14 @@ import random
 import time
 import struct
 import ezt
+  
+try:
+  import ogg.vorbis
+  oggSupport='yes'
+  print 'Ogg Vorbis support enabled'
+except ImportError:
+  oggSupport='no'
+  print 'Ogg Vorbis support disabled, to enable it you will need to install the pyogg and the pyvorbis modules'
 
 try:
   import cStringIO
@@ -353,7 +361,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
           d = _datablob(href=href, is_new=is_new, text=cgi.escape(base))
 
-          info = MP3Info(open(fullpath, 'rb'))
+          if ext == '.ogg':
+            if oggSupport == 'yes':
+              info = OggInfo(fullpath)
+            else:
+              continue
+          else:  
+            info = MP3Info(open(fullpath, 'rb'))
+
           if hasattr(info, 'length'):
             if info.length > 3600:
               info.duration = '%d:%02d:%02d' % (int(info.length / 3600),
@@ -923,6 +938,47 @@ class MP3Info:
       else:
         self.genre = None
 
+class OggInfo:
+  """Extra information about an Ogg Vorbis file.
+  Uses ogg-python and vorbis-python from http://www.duke.edu/~ahc4/pyogg/.
+  
+  Patch from Justin Erenkrantz <justin@erenkrantz.com>
+  """
+
+  def __init__(self, name):
+    print 'we are now in OggInfo'
+    self.valid = 0
+    #
+    # Generic File Info
+    #
+    self.vf = ogg.vorbis.VorbisFile(name)
+    vc = self.vf.comment()
+    vi = self.vf.info()
+    
+    self.bitrate = vi.rate
+    # According to the docs, -1 means the current bitstream
+    self.length = self.vf.time_total(-1)
+
+    # recognized_comments = ('Artist', 'Album', 'Title', 'Version',
+    #                        'Organization', 'Genre', 'Description',
+    #                        'Date', 'Location', 'Copyright', 'Vendor')
+    for key, val in vc.items():
+        if key == 'TITLE':
+            self.title = val
+        elif key == 'ARTIST':
+            self.artist = val
+        elif key == 'ALBUM':
+            self.album = val
+        elif key == 'DATE':
+            self.year = val
+        elif key == 'GENRE':
+            self.genre = val
+        elif key == 'VENDOR':
+            self.vendor = val
+        elif key == 'TRACKNUMBER':
+            self.track = val
+    self.valid = 1
+ 
 
 def strip_zero(s):
   l = len(s) - 1
@@ -1017,9 +1073,6 @@ if __name__ == '__main__':
 #
 # pass an MP3 (or playlist) off to a server-side player. allows remote
 #   control of an MP3 jukebox/player combo.
-#
-# from "Daniel Carraher" <dcarrahe@biochem.umass.edu>:
-#   OGG Vorbis files? anything beyond the extension?
 #
 # add MP3 info into the style-xml.ezt template
 #          for key, val in vars(text).items():
