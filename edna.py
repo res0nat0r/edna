@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.10 2001/01/29 10:00:16 gstein Exp $
+#   $Id: edna.py,v 1.11 2001/02/17 13:35:47 gstein Exp $
 #
 
 import SocketServer
@@ -197,10 +197,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           if extensions.has_key(string.lower(ext)):
             # something.mp3.m3u -- one of our psuedo-files
             pathname = os.path.join(curdir, base + ext)
+
         if not os.path.exists(pathname):
           self.send_error(404)
           return
+
         if os.path.isfile(pathname):
+          # requested a file.
           ip, port = self.client_address
           self.server.log_user(ip,
                                time.strftime("%B %d %I:%M:%S %p",
@@ -208,11 +211,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                                pathname)
           self.serve_file(p, pathname, url)
           return
+
         curdir = pathname
         url = url + '/' + urllib.quote(p)
 
-      # requested a directory. ensure there is a trailing slash so that
-      # the (relative) href values will work.
+      # requested a directory.
+
+      # ensure there is a trailing slash so that the (relative) href
+      # values will work.
       if self.path[-1] != '/':
         redir = self.build_url('/' + string.join(path, '/'))
         self.redirect(redir)
@@ -221,16 +227,19 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       subdirs = []
       songs = []
       playlists = []
-      tail = path[-1]
-      taillen = len(tail)
+
+      thisdir = path[-1]
+      thisdirlen = len(thisdir)
+
       for name in sort_dir(curdir):
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
         if extensions.has_key(ext):
           # if a song has a prefix that matches the directory, and something
-          # exists after that prefix, then strip it
-          if base[:taillen] == tail and len(base) > taillen:
-            base = base[taillen:]
+          # exists after that prefix, then strip it. don't strip if the
+          # directory is a single-letter.
+          if base[:thisdirlen] == thisdir and len(base) > thisdirlen > 1:
+            base = base[thisdirlen:]
 
             # trim a bit of stuff off of the file
             match = re_trim.match(base)
