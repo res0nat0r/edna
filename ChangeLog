@@ -1,5 +1,6 @@
 Changes since 0.4
 
+  - don't log requests for picture_extensions
   - Experimental ID3-Tag support (in default_complex.ezt template)
     Known problems:
 				- doesn't work with ogg, a workaround is included, MP3Info is used not OggInfo because OggInfo doesn't has songs.info.mpeg.* informations)
