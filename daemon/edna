@@ -10,51 +10,110 @@
 # config: 
 
 # Source function library.
-. /etc/rc.d/init.d/functions
 
-[ -f /usr/local/bin/edna.py ] || exit 0
+EDNA=/usr/bin/edna
+EDNAD=/usr/bin/ednad
+initdir=/etc/init.d
+pidfile=/var/run/ednad.pid
+EDNACONF=/etc/edna/edna.conf
+
+PYTHONPATH=/usr/lib/edna
+export PYTHONPATH
+#
+# Determine which kind of configuration we're using
+#
+system=unknown
+if [ -f /etc/debian_version ]; then
+    system=debian
+elif [ -f /etc/redhat-release ]; then
+    system=redhat
+else
+    echo "$0: Unknown system, please port" 1>&2
+    exit 1
+fi
+
+if [ $system = redhat ]; then
+    . $initdir/functions
+fi
+
+
+[ -f $EDNA ] || exit 0
+
 
 RETVAL=0
 
-start() {
-    echo -n "Starting ednad: "
-    daemon /usr/local/bin/ednad
-    echo
-    touch /var/lock/subsys/ednad
-    return $RETVAL
+function redhat () {
+    case "$1" in
+    start)
+        echo -n "Starting ednad: "
+        daemon ${EDNAD}
+        echo
+        touch /var/lock/subsys/ednad
+        return $RETVAL
+        ;;
+    stop)
+        echo -n "Shutting down ednad: "
+        EDNADPID=
+        EDNADPID=$(cat $pidfile)
+        kill $EDNADPID
+        echo
+        rm -f /var/lock/subsys/ednad $pidfile
+        return $RETVAL
+        ;;
+    status)
+        EDNADPID=
+        EDNADPID=$(cat $pidfile)
+        echo -n "Checking for ednad, PID is : " $EDNADPID
+        echo 
+         ;;
+    restart)
+         stop
+         start
+         ;;
+    *)
+        echo "Usage: $0 {start | stop | restart | status}"
+	exit 1
+    esac
 }
 
-stop() {
-    echo -n "Shutting down ednad: "
-    EDNADPID=
-    EDNADPID=$(cat /var/run/edna.pid)
-     kill $EDNADPID
-    echo
-    rm -f /var/lock/subsys/ednad /var/run/ednad.pid
-    return $RETVAL
-}
-
-# See how we were called.
+function debian () {
 case "$1" in
-  start)
-	start
+    start)
+	echo -n 'Starting edna mp3 server: edna'
+	start-stop-daemon --start --quiet -pidfile --pidfile $pidfile  --exec $EDNA -- --daemon $EDNACONF
+        echo "."
+        ;;
+
+    stop)
+	echo -n 'Stopping edna mp3 server: edna'
+	start-stop-daemon --stop --quiet --oknodo --pidfile $pidfile --exec $EDNA
+        echo "."
 	;;
-  stop)
-	stop
-	;;
-  status)
-    EDNADPID=
-    EDNADPID=$(cat /var/run/ednad.pid)
-   echo -n "Checking for ednad, PID is : " $EDNADPID
-   echo 
-	;;
+
+    reload)
+        start-stop-deamon --stop --signal 1 --oknodo --pidfile $pidfile --exec $EDNA
+        ;;
+
+
   restart)
-	 stop
-	 start
+	echo -n 'Restarting edna mp3 server: edna'
+	start-stop-daemon --stop --quiet --oknodo --pidfile $pidfile --exec $EDNA
+	sleep 10
+	start-stop-daemon --start --quiet --pidfile $pidfile --exec $EDNA -- --daemon $EDNACONF
+	echo "."
 	;;
+
   *)
-	echo "Usage: $0 {start | stop | restart | status}"
+	echo "Usage: /etc/init.d/edna {start|stop|reload|restart}"
 	exit 1
 esac
+}
+
+if [ $system = debian ]; then
+	debian "$@"
+elif [ $system = redhat ]; then
+	redhat "$@"
+fi
+
 
 exit 0

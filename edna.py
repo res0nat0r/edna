@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.54 2002/10/09 14:32:56 st0ne Exp $
+#   $Id: edna.py,v 1.55 2002/11/07 23:53:25 kgk Exp $
 #
 
 __version__ = '0.4'
@@ -45,6 +45,7 @@ import time
 import struct
 import ezt
 import MP3Info
+import signal
 
 try:
   import ogg.vorbis
@@ -79,6 +80,7 @@ except ImportError:
   mixin = SocketServer.ForkingMixIn
 
 
+
 class Server(mixin, BaseHTTPServer.HTTPServer):
   def __init__(self, fname):
     self.userLog = [ ] # to track server usage
@@ -99,12 +101,16 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d['log'] = ''
     d['template-dir'] = 'templates'
     d['template'] = 'default.ezt'
+    d['auth_level'] = '1'
+    d['debug_level'] = '0'
+    d['fileinfo'] = '0'
 
     config.read(fname)
 
     template_path = config.get('server', 'template-dir')
     template_file = config.get('server', 'template')
     template_path = os.path.join(os.path.dirname(fname), template_path)
+    self.fileinfo = config.getint('server', 'fileinfo')
 
     global debug_level
     debug_level = config.getint('extra', 'debug_level')
@@ -174,6 +180,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     except ConfigParser.NoOptionError:
       self.auth_table = {}
 
+    self.auth_level = config.get('acl', 'auth_level')
+
     self.port = config.getint('server', 'port')
     try:
         SocketServer.TCPServer.__init__(self,
@@ -191,7 +199,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     BaseHTTPServer.HTTPServer.server_bind(self)
 
   def log_user(self, ip, tm, url):
-    if len(self.userLog) > 19:
+    if len(self.userLog) > 40:
       # delete the oldest entry
       self.userLog.pop(0)
 
@@ -222,7 +230,30 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       self._perform_GET()
     except ClientAbortedException:
-      Messages().debug_message('DEBUG --- Exception catched in "do_GET" --- ClientAbortException')
+      Messages().debug_message('DEBUG --- Exception caught in "do_GET" --- ClientAbortException')
+    except IOError:
+      pass
+
+  def check_authorization(self):
+    auth_table = self.server.auth_table
+    auth = self.headers.getheader('Authorization')
+    this_user, this_pass = None, None
+    if auth:
+      if string.lower(auth[:6]) == 'basic ':
+        import base64
+        [name,password] = string.split(
+          base64.decodestring(string.split(auth)[-1]), ':')
+        this_user, this_pass = name, password
+
+      if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
+        Messages().debug_message('DEBUG --- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
+        return 1
+    else:
+      realm='edna'
+      self.send_response(401)
+      self.send_header('WWW-Authenticate', 'basic realm="%s"' % realm)
+      self.end_headers()
+      return 0
 
   def _perform_GET(self):
 
@@ -233,24 +264,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     ## verify the Username/Password
     if self.server.auth_table:
-      auth_table = self.server.auth_table
-      auth=self.headers.getheader('Authorization')
-      this_user, this_pass = None, None
-      if auth:
-          if string.lower(auth[:6]) == 'basic ':
-              import base64
-              [name,password] = string.split(
-                  base64.decodestring(string.split(auth)[-1]), ':')
-              this_user, this_pass = name, password
-
-      if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
-        Messages().debug_message('DEBUG --- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
-      else:
-        realm='edna'
-        self.send_response(401)
-        self.send_header('WWW-Authenticate', 'basic realm="%s"' % realm)
-        self.end_headers()
-        return
+      if self.server.auth_level == '1' or self.path == '/':
+        if not self.check_authorization():
+          return
 
     path = self.translate_path()
     if path is None:
@@ -372,25 +388,10 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
               base = match.group(1)
 
           d = _datablob(href=href, is_new=is_new, text=cgi.escape(base))
-
-          if ext == '.ogg':
-            if oggSupport == 'yes':
-              # doesn't work yet, default.ezt calls some info.mpeg things that are only in MP3Info.py :(
-              #info = OggInfo(fullpath)
-              info = MP3Info.MP3Info(open(fullpath, 'rb'))
-            else:
-              continue
+          if self.server.fileinfo:
+            info = FileInfo(fullpath)
           else:
-            info = MP3Info.MP3Info(open(fullpath, 'rb'))
-
-          if hasattr(info, 'length'):
-            if info.length > 3600:
-              info.duration = '%d:%02d:%02d' % (int(info.length / 3600),
-                                                int(info.length / 60) % 60,
-                                                int(info.length) % 60)
-            else:
-              info.duration = '%d:%02d' % (int(info.length / 60),
-                                           int(info.length) % 60)
+            info = _datablob()
           d.info = empty_delegator(info)
 
           songs.append(d)
@@ -730,11 +731,45 @@ class empty_delegator:
   def __init__(self, ob):
     self.ob = ob
   def __getattr__(self, name):
-    try:
+    if hasattr(self.ob, name):
       return getattr(self.ob, name)
-    except AttributeError:
+    else:
       return ''
 
+
+class FileInfo:
+  """Grab as much info as you can from the file given"""
+
+  def __init__(self, fullpath):
+    base, ext = os.path.splitext(fullpath)
+    ext = string.lower(ext)
+
+    if ext == '.ogg':
+      info = OggInfo(fullpath)
+      self.__dict__.update(info.__dict__)
+    else:
+      info = MP3Info.MP3Info(open(fullpath, 'rb'))
+      self.__dict__.update(info.__dict__)
+      self.total_time = info.mpeg.total_time;
+      self.filesize = info.mpeg.filesize2
+      self.bitrate = info.mpeg.bitrate
+      self.samplerate = info.mpeg.samplerate
+      self.mode = info.mpeg.mode
+      self.mode_extension = info.mpeg.mode_extension
+
+      
+#    if hasattr(info, 'length'):
+    if self.total_time > 3600:
+      self.duration = '%d:%02d:%02d' % (int(self.total_time / 3600),
+                                          int(self.total_time / 60) % 60,
+                                          int(self.total_time) % 60)
+    elif self.total_time > 60:
+      self.duration = '%d:%02d' % (int(self.total_time / 60),
+                                     int(self.total_time) % 60)
+    else:
+      self.duration ='%02d' % int(self.total_time)
+    
+    
 class OggInfo:
   """Extra information about an Ogg Vorbis file.
   Uses ogg-python and vorbis-python from http://www.duke.edu/~ahc4/pyogg/.
@@ -743,17 +778,31 @@ class OggInfo:
   """
 
   def __init__(self, name):
+    global oggSupport
+
+    # Setup the defaults
     self.valid = 0
+    self.total_time = 0
+    self.samplerate = 'unkown'
+    self.bitrate = 'unkown'
+    self.mode = ''
+    self.mode_extension = ''
+
+    if oggSupport == 'no':
+      return
+
     #
     # Generic File Info
     #
-    self.vf = ogg.vorbis.VorbisFile(name)
-    vc = self.vf.comment()
-    vi = self.vf.info()
+    vf = ogg.vorbis.VorbisFile(name)
+    vc = vf.comment()
+    vi = vf.info()
 
-    self.bitrate = vi.rate
     # According to the docs, -1 means the current bitstream
-    self.length = self.vf.time_total(-1)
+    self.samplerate = vi.rate
+    self.total_time = vf.time_total(-1)
+    self.bitrate = vf.bitrate(-1) / 1000 
+    self.filesize = vf.raw_total(-1)/1024/1024
 
     # recognized_comments = ('Artist', 'Album', 'Title', 'Version',
     #                        'Organization', 'Genre', 'Description',
@@ -777,7 +826,6 @@ class OggInfo:
             self.comment = val
         elif key == 'TRANSCODED':
             self.transcoded = val
-
     self.valid = 1
 
 
@@ -841,19 +889,16 @@ any_extensions = {}
 any_extensions.update(extensions)
 any_extensions.update(picture_extensions)
 
-if __name__ == '__main__':
-  if len(sys.argv) > 2:
-    print 'USAGE: %s [config-file]' % os.path.basename(sys.argv[0])
-    print '  if config-file is not specified, then edna.conf is used'
-    sys.exit(1)
+config_needed = None
 
-  if len(sys.argv) == 2:
-    fname = sys.argv[1]
-    if os.path.isfile(fname) != 1:
-      print "edna: %s: No such file" % fname
-      raise SystemExit
-  else:
-    fname = 'edna.conf'
+def sighup_handler(signum, frame):
+  global config_needed
+  config_needed = 1
+
+def run_server(fname):
+  global config_needed, oggSupport
+
+  signal.signal(signal.SIGHUP, sighup_handler)
 
   svr = Server(fname)
   if oggSupport == 'yes':
@@ -863,11 +908,90 @@ if __name__ == '__main__':
 
   print "edna: serving on port %d..." % svr.port
   try:
-    svr.serve_forever()
+    while 1:
+#      print 'waiting ... '
+      if config_needed:
+        svr.server_close()
+        print 'Reloading config %s' % fname
+        svr = Server(fname)
+        config_needed  = None
+      svr.handle_request()
   except KeyboardInterrupt:
     print "\nCaught ctr-c, taking down the server"
     print "Please wait while the remaining streams finnish.."
-    raise SystemExit
+    sys.exit(0)
+
+def usage():
+      print 'USAGE: %s [--daemon] [config-file]' % os.path.basename(sys.argv[0])
+      print '  if config-file is not specified, then edna.conf is used'
+      sys.exit(0)
+
+def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null',pname=''):
+    '''This forks the current process into a daemon.
+    The stdin, stdout, and stderr arguments are file names that
+    will be opened and be used to replace the standard file descriptors
+    in sys.stdin, sys.stdout, and sys.stderr.
+    These arguments are optional and default to /dev/null.
+    Note that stderr is opened unbuffered, so
+    if it shares a file with stdout then interleaved output
+    may not appear in the order that you expect.
+    '''
+    # Do first fork.
+    try: 
+        pid = os.fork() 
+        if pid > 0:
+            sys.exit(0) # Exit first parent.
+    except OSError, e: 
+        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror)    )
+        sys.exit(1)
+        
+    # Decouple from parent environment.
+    os.chdir("/") 
+    os.umask(0) 
+    os.setsid() 
+    
+    # Do second fork.
+    try: 
+        pid = os.fork() 
+        if pid > 0:
+            if pname:
+              pidfile = open(pname, 'w')
+              pidfile.write(str (pid))
+              pidfile.close()
+            sys.exit(0) # Exit second parent.
+    except OSError, e: 
+        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)    )
+        sys.exit(1)
+    # Now I am a daemon!
+    # Redirect standard file descriptors.
+    si = open(stdin, 'r')
+    so = open(stdout, 'a+')
+    se = open(stderr, 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
+
+if __name__ == '__main__':
+  fname = 'edna.conf'
+  daemon_mode=0
+  for a in sys.argv[1:]:
+    if a == "--daemon":
+      daemon_mode=1
+    elif a == "--help" or string.find(a, '--')==0:
+      usage()
+    else:
+      fname = a
+
+  if os.path.isfile(fname) != 1:
+    print "edna: %s:No such file" %fname
+    raise systemExit
+
+  if daemon_mode:
+    daemonize('/dev/null', '/var/log/edna.log', '/var/log/edna.log', '/var/run/edna.pid')
+
+  run_server(fname)
+
 
 ##########################################################################
 #

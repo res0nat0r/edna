@@ -82,12 +82,12 @@
       <td align="left">[songs.info.album]</td>
       <td>[songs.info.year]&nbsp;</td>
       <td align="left">[songs.info.genre]</td>
-      <td>[songs.info.mpeg.length] min.</td>
-      <td>[songs.info.mpeg.filesize2] MB</td>
-      <td>[songs.info.mpeg.bitrate] kbps</td>
-      <td>[songs.info.mpeg.samplerate] kHz&nbsp;</td>
-      <td align="center">[songs.info.mpeg.mode]</td>
-      <td align="center">[songs.info.mpeg.mode_extension]</td>
+      <td>[songs.info.duration] </td>
+      <td>[songs.info.filesize] MB</td>
+      <td>[songs.info.bitrate] kbps</td>
+      <td>[songs.info.samplerate] kHz&nbsp;</td>
+      <td align="center">[songs.info.mode]</td>
+      <td align="center">[songs.info.mode_extension]</td>
       <!-- <td>[songs.is_new]</a>&nbsp;</td> -->
     </tr>
   [end]

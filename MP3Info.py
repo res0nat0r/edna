@@ -110,7 +110,7 @@ class ID3v2Frame:
         try:
                 self.data = _strip_zero(file.read(self.size))
         except MemoryError:
-                print 'Warning --- Memoryerror catched in ID3v2Frame'
+                print 'Warning --- Memoryerror caught in ID3v2Frame'
 
 _genres = [
     "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
@@ -286,17 +286,21 @@ class MPEG:
         self.original = 0
         self.emphasis = ""
         self.length = 0
+        self.total_time = 0
 
-        offset, header = self._find_header(file)
-        if offset == -1 or header is None:
-            return
+        try:
+            offset, header = self._find_header(file)
+            if offset == -1 or header is None:
+                return
 
-        self._parse_header(header)
+            self._parse_header(header)
         ### offset + framelength will find another header. verify??
-        if not self.valid:
-            return
+            if not self.valid:
+                return
 
-        self._parse_xing(file)
+            self._parse_xing(file)
+        except ZeroDivisionError:
+            pass
         
 
     def _find_header(self, file):                                                                                 
@@ -390,6 +394,7 @@ class MPEG:
         self.length_minutes = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) / 60)
         self.length_seconds = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) % 60)
         self.length = float(str(self.length_minutes) + '.' + str(self.length_seconds))
+        self.total_time = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate))
 
         self.valid = 1
 

@@ -1,3 +1,4 @@
 #!/bin/sh
 #
-exec python /usr/local/bin/edna.py /usr/local/bin/edna.conf &
+export PYTHONPATH=/usr/lib/edna
+exec python /usr/bin/edna /etc/edna/edna.conf &
