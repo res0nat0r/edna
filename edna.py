@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.19 2001/02/19 12:59:49 gstein Exp $
+#   $Id: edna.py,v 1.20 2001/02/19 13:13:17 gstein Exp $
 #
 
 import SocketServer
@@ -72,14 +72,14 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     config.add_section('server')
     d = config.defaults()
     d['port'] = '8080'
-    d['binding_hostname'] = ''
+    d['binding-hostname'] = ''
     d['log'] = ''
     # Process the config file.
     self.config(fname, config)
     self.port = config.getint('server', 'port')
     SocketServer.TCPServer.__init__(
       self,
-      (config.get('server', 'binding_hostname'),
+      (config.get('server', 'binding-hostname'),
        self.port),
       RequestHandler)
 
