@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.13 2001/02/19 10:50:06 gstein Exp $
+#   $Id: edna.py,v 1.14 2001/02/19 11:21:15 gstein Exp $
 #
 
 import SocketServer
@@ -230,6 +230,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.redirect(redir)
         return
 
+      pictures = []
       subdirs = []
       songs = []
       playlists = []
@@ -240,6 +241,9 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       for name in sort_dir(curdir):
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
+        if picture_extensions.has_key(ext):
+          pictures.append((base, name))
+          continue
         if extensions.has_key(ext):
           # if a song has a prefix that matches the directory, and something
           # exists after that prefix, then strip it. don't strip if the
@@ -265,15 +269,15 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           newdir = os.path.join(curdir, name)
           if os.path.isdir(newdir):
             subdirs.append((name, name + '/'))
-      self.display_page('select music', subdirs, songs, playlists)
+      self.display_page('select music', subdirs, pictures, songs, playlists)
 
-  def display_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
+  def display_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
     if self.output_style == 'xml':
-      self.display_xml_page(title, subdirs, songs, playlists, skiprec)
+      self.display_xml_page(title, subdirs, pictures, songs, playlists, skiprec)
     else:
-      self.display_html_page(title, subdirs, songs, playlists, skiprec)
+      self.display_html_page(title, subdirs, pictures, songs, playlists, skiprec)
 
-  def display_html_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
+  def display_html_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
     self.send_response(200)
     self.send_header("Content-Type", "text/html")
     self.end_headers()
@@ -282,6 +286,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                      '<body><h1>%s</h1>\n'
                      % (cgi.escape(title), cgi.escape(title))
                      )
+    self.display_html_list('Pictures', pictures)
     self.display_html_list('Subdirectories', subdirs, skiprec)
     self.display_html_list('Songs', songs)
     self.display_html_list('Playlists', playlists)
@@ -294,10 +299,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def display_html_list(self, title, list, skipall=0):
     if list:
-      self.wfile.write('<p>%s:</p><ul>\n' % title)
+      if title != 'Pictures':
+        self.wfile.write('<p>%s:</p><ul>\n' % title)
       for text, href in list:
         if isinstance(text, MP3Info):
           self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text.text)))
+        elif title == 'Pictures':
+          self.wfile.write('<img src="%s">\n' % urllib.quote(href))
         else:
           self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text)))
       self.wfile.write('</ul>\n')
@@ -316,13 +324,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                            '<a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>'
                            '</blockquote></p>\n')
 
-  def display_xml_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
+  def display_xml_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
     self.send_response(200)
     self.send_header("Content-Type", "text/xml")
     self.end_headers()
 
     self.wfile.write('<?xml version="1.0" encoding="ISO-8859-1"?>\n'
                      '<edna>\n')
+    ### handle the pictures
     self.display_xml_list('subdirectory', subdirs, skiprec)
     self.display_xml_list('song', songs)
     self.display_xml_list('playlist', playlists)
@@ -395,11 +404,35 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     return songs
 
+  def open_playlist(self, fullpath):
+    ### revamp this. use some ideas from Stephen Norris' alternate patch.
+    dir = os.path.dirname(fullpath)
+    f = open(fullpath)
+    buffer = ""
+    for str in f.readlines():
+      if str[:5] == "http:":
+        buffer = buffer + str
+      else:
+        str = str[:-1]
+        str = os.path.normpath(os.path.join(dir, str))
+        if not os.path.exists(str): continue
+        found = 0
+        for d, name in self.server.dirs:
+          if string.lower(str[:len(d)]) == string.lower(d):
+            str = name + str[len(d):]
+            found = 1
+        if not found: continue
+        str = string.replace(str, "\\", "/")
+        buffer = buffer + self.build_url("", str) + "\n"
+    f.close()
+    f = StringIO.StringIO(buffer)
+    return f
+
   def serve_file(self, name, fullpath, url):
     base, ext = os.path.splitext(name)
     ext = string.lower(ext)
-    if extensions.has_key(ext):
-      type = extensions[ext]
+    if any_extensions.has_key(ext):
+      type = any_extensions[ext]
       f = open(fullpath, 'rb')
       clen = os.fstat(f.fileno())[stat.ST_SIZE]
     elif ext != '.m3u':
@@ -423,8 +456,8 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           f = StringIO.StringIO(self.build_url(url, base) + ext + '\n')
           clen = len(f.getvalue())
         else:
-          f = open(fullpath)
-          clen = os.fstat(f.fileno())[stat.ST_SIZE]
+          f = self.open_playlist(fullpath)
+          clen = len(f.getvalue())
 
     self.send_response(200)
     self.send_header("Content-Type", type)
@@ -734,6 +767,18 @@ extensions = {
   '.asx' : 'video/x-ms-asf',
   '.mpg' : 'video/mpeg',
   }
+
+# Extensions of images: (and their MIME type)
+picture_extensions = { 
+  '.gif' : 'image/gif',
+  '.jpe' : 'image/jpeg',
+  '.jpg' : 'image/jpeg',
+  '.png' : 'image/png',
+  }
+
+any_extensions = {} 
+any_extensions.update(extensions)
+any_extensions.update(picture_extensions)
 
 if __name__ == '__main__':
   if len(sys.argv) > 2:
