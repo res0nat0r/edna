@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.43 2002/09/24 08:48:55 halux2001 Exp $
+#   $Id: edna.py,v 1.44 2002/09/24 10:04:46 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -767,7 +767,7 @@ _samplerates = [
 
 _modes = [ "stereo", "joint stereo", "dual channel", "mono" ]
 
-_MP3_HEADER_SEEK_LIMIT = 2000
+_MP3_HEADER_SEEK_LIMIT = 4000
 
 class MP3Info:
   """Extra information about an MP3 file.
