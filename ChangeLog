@@ -20,4 +20,6 @@ Changes since 0.4
   - Cleaned up error messages:
   	- bind() error 
 	- configfile not found error
-	
+  - Added name_prefix config option to override HTTP Host header when
+    generating playlists
+

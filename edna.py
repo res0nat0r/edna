@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.57 2002/11/08 19:56:24 kgk Exp $
+#   $Id: edna.py,v 1.58 2002/11/10 05:50:09 jerenk Exp $
 #
 
 __version__ = '0.4'
@@ -97,6 +97,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d = config.defaults()
     d['port'] = '8080'
     d['binding-hostname'] = ''
+    d['name_prefix'] = ''
     d['log'] = ''
     d['template-dir'] = 'templates'
     d['template'] = 'default.ezt'
@@ -192,6 +193,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       self.auth_table = {}
 
     self.auth_level = config.get('acl', 'auth_level')
+
+    self.name_prefix = config.get('server', 'name_prefix')
 
     self.port = config.getint('server', 'port')
     try:
@@ -641,7 +644,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         break
 
   def build_url(self, url, file=''):
-    host = self.headers.getheader('host') or self.server.server_name
+    host = self.server.name_prefix or self.headers.getheader('host') or self.server.server_name
     if string.find(host, ':'):
       return 'http://%s%s/%s' % (host, url, urllib.quote(file))
     return 'http://%s:%s%s/%s' % (host, self.server.server_port, url,
