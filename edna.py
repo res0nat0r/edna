@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.14 2001/02/19 11:21:15 gstein Exp $
+#   $Id: edna.py,v 1.15 2001/02/19 12:09:29 gstein Exp $
 #
 
 import SocketServer
@@ -42,6 +42,12 @@ import whrandom
 import time
 
 error = __name__ + '.error'
+
+TITLE = 'Streaming MP3 Server'
+FOOTER = ('<hr>'
+          '<center>Powered by '
+          '<a href="http://edna.sourceforge.net/">edna</a>'
+          '</center>')
 
 # a pattern used to trim leading digits, spaces, and dashes from a song
 ### would be nice to get a bit fancier with the possible trimming
@@ -170,7 +176,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     if not path:
       subdirs = map(lambda x: (x[1], x[1]+'/'), self.server.dirs)
-      self.display_page('select music', subdirs, skiprec=1)
+      self.display_page(TITLE, subdirs, skiprec=1)
     elif path[0] == 'stats':
       # the site statistics were requested
       self.send_response(200)
@@ -262,14 +268,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if info.valid == 1:
               info.text = base
               base = info
-          songs.append((base, name + '.m3u'))
+          songs.append((base, name))
         elif ext == '.m3u':
           playlists.append((base, name))
         else:
           newdir = os.path.join(curdir, name)
           if os.path.isdir(newdir):
             subdirs.append((name, name + '/'))
-      self.display_page('select music', subdirs, pictures, songs, playlists)
+      self.display_page(TITLE, subdirs, pictures, songs, playlists)
 
   def display_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
     if self.output_style == 'xml':
@@ -295,6 +301,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.wfile.write('<i>Empty directory</i>\n')
 
     self.wfile.write('<p><a href="/stats/">Server statistics</a></p>')
+    self.wfile.write(FOOTER)
     self.wfile.write('</body></html>\n')
 
   def display_html_list(self, title, list, skipall=0):
@@ -302,12 +309,17 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if title != 'Pictures':
         self.wfile.write('<p>%s:</p><ul>\n' % title)
       for text, href in list:
+        href = urllib.quote(href)
         if isinstance(text, MP3Info):
-          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text.text)))
-        elif title == 'Pictures':
-          self.wfile.write('<img src="%s">\n' % urllib.quote(href))
+          text = text.text
+        text = cgi.escape(text)
+        if title == 'Pictures':
+          self.wfile.write('<img src="%s">\n' % href)
+        elif title == 'Songs':
+          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (href, text))
+          #self.wfile.write('<li>%s&nbsp;[&nbsp;<a href="%s.m3u">Stream</a>&nbsp;|&nbsp;<a href="%s">Download</a>&nbsp;]</li>\n' % (text, href, href))
         else:
-          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (urllib.quote(href), cgi.escape(text)))
+          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (href, text))
       self.wfile.write('</ul>\n')
       if not skipall:
         if title == 'Songs':
@@ -341,9 +353,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def display_xml_list(self, title, list, skipall=0):
     if list:
       for text, href in list:
+        href = urllib.quote(href)
+        if title == 'song':
+          href = href + '.m3u'
+        ### add download links for songs? or stick with just streaming?
         if isinstance(text, MP3Info):
-          self.wfile.write('<%s><href>%s</href>'
-                           % (title, urllib.quote(href)))
+          self.wfile.write('<%s><href>%s</href>' % (title, href))
           for key, val in vars(text).items():
             if key != "valid" and val != None:
               self.wfile.write('<%s>%s</%s>'
@@ -351,7 +366,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.wfile.write('</%s>\n' % (title))
         else:
           self.wfile.write('<%s><href>%s</href><text>%s</text></%s>\n'
-                           % (title, urllib.quote(href), cgi.escape(text), title))
+                           % (title, href, cgi.escape(text), title))
       if not skipall:
         if title == 'song':
           self.wfile.write('<playlist><href>%s</href><text>%s</text></playlist>\n'
@@ -750,10 +765,11 @@ def sort_dir(d):
 
 # Extensions that WinAMP can handle: (and their MIME type if applicable)
 extensions = { 
-  '.mp3' : 'video/mpeg',
+  '.mp3' : 'audio/mpeg',
   '.mid' : 'audio/mid',
-  '.mp2' : 'video/mpeg',
-#  '.cda',
+  '.mp2' : 'video/mpeg',        ### is this audio or video? my Windows box
+                                ### says video/mpeg
+#  '.cda',                      ### what to do with .cda?
   '.it'  : 'audio/mid',
   '.xm'  : 'audio/mid',
   '.s3m' : 'audio/mid',
