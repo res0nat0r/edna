@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if test $# != 2; then
+  echo "USAGE: $0 tagname target-directory"
+  exit 1
+fi
+
+if test -e $2; then
+  echo "ERROR: must remove $2 first."
+  exit 1
+fi
+
+# grab a copy of the CVS repository
+echo 'Checking out into:' $2
+cvs -d :pserver:anonymous@cvs.edna.sourceforge.net:/cvsroot/edna export -r "$1" -d $2 edna
+
+# various shifint, cleanup
+rm -r edna/www
+rm -r edna/make-release
+
+echo "Creating $2.tar.gz..."
+tar czf $2.tar.gz $2
+
+echo 'Done.'
