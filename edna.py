@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.56 2002/11/08 01:58:55 kgk Exp $
+#   $Id: edna.py,v 1.57 2002/11/08 19:56:24 kgk Exp $
 #
 
 __version__ = '0.4'
@@ -383,7 +383,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
       for name in sort_dir(curdir):
         href = urllib.quote(name)
-        is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_CTIME])
+        is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_MTIME])
 
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
@@ -933,6 +933,7 @@ def run_server(fname):
         config_needed  = None
       svr.handle_request()
     svr.log_message ("edna: exiting")
+    sys.exit(0)
   except KeyboardInterrupt:
     print "\nCaught ctr-c, taking down the server"
     print "Please wait while the remaining streams finnish.."
