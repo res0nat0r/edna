@@ -18,11 +18,11 @@ install:
 	install edna.py $(BINDIR)/edna
 	install ezt.py $(LIBDIR)
 	install MP3Info.py $(LIBDIR)
-	install -m644 templates/*  $(LIBDIR)/templates
+	-install -m644 templates/*  $(LIBDIR)/templates
 
 install-daemon: install
 	install -d $(CONFDIR) $(INITDIR)
-	install edna.conf $(CONFDIR)
+	if [ ! -e $(CONFDIR)/edna.conf ] ; then install edna.conf $(CONFDIR) ; fi
 	install daemon/edna $(INITDIR)/edna
 
 clean:

@@ -11,11 +11,15 @@
 
 # Source function library.
 
+#debian vars
 EDNA=/usr/bin/edna
+EDNACONF=/etc/edna/edna.conf
+PIDFILE=/var/run/edna.pid
+# redhat
 EDNAD=/usr/bin/ednad
 initdir=/etc/init.d
 pidfile=/var/run/ednad.pid
-EDNACONF=/etc/edna/edna.conf
+
 
 PYTHONPATH=/usr/lib/edna
 export PYTHONPATH
@@ -80,26 +84,26 @@ function debian () {
 case "$1" in
     start)
 	echo -n 'Starting edna mp3 server: edna'
-	start-stop-daemon --start --quiet -pidfile --pidfile $pidfile  --exec $EDNA -- --daemon $EDNACONF
+	start-stop-daemon --start --quiet --pidfile $PIDFILE  --exec $EDNA -- --daemon $EDNACONF
         echo "."
         ;;
 
     stop)
 	echo -n 'Stopping edna mp3 server: edna'
-	start-stop-daemon --stop --quiet --oknodo --pidfile $pidfile --exec $EDNA
+	start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
         echo "."
 	;;
 
     reload)
-        start-stop-deamon --stop --signal 1 --oknodo --pidfile $pidfile --exec $EDNA
+        start-stop-daemon --stop --signal 1 --oknodo --pidfile $PIDFILE
         ;;
 
 
   restart)
 	echo -n 'Restarting edna mp3 server: edna'
-	start-stop-daemon --stop --quiet --oknodo --pidfile $pidfile --exec $EDNA
+	start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE 
 	sleep 10
-	start-stop-daemon --start --quiet --pidfile $pidfile --exec $EDNA -- --daemon $EDNACONF
+	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $EDNA -- --daemon $EDNACONF
 	echo "."
 	;;
 
