@@ -2,6 +2,7 @@
 #
 # edna.py -- an MP3 server
 #
+# Copyright (C) 2002 Fredrik Steen <fsteen@stone.nu>. All Rights Reserved.
 # Copyright (C) 1999-2000 Greg Stein. All Rights Reserved.
 #
 # This program is free software; you can redistribute it and/or
@@ -23,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.53 2002/09/26 16:42:31 halux2001 Exp $
+#   $Id: edna.py,v 1.54 2002/10/09 14:32:56 st0ne Exp $
 #
 
 __version__ = '0.4'
@@ -174,10 +175,13 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       self.auth_table = {}
 
     self.port = config.getint('server', 'port')
-    SocketServer.TCPServer.__init__(
-      self,
-      (config.get('server', 'binding-hostname'), self.port),
-      EdnaRequestHandler)
+    try:
+        SocketServer.TCPServer.__init__(self,
+            (config.get('server', 'binding-hostname'), self.port),
+            EdnaRequestHandler)
+    except socket.error, value:
+        print "edna: bind(): %s" % str(value[1])
+        raise SystemExit
 
   def server_bind(self):
     # set SO_REUSEADDR (if available on this platform)
@@ -588,6 +592,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_response(200)
     self.send_header("Content-Type", type)
     self.send_header("Content-Length", clen)
+    # Thanks to Stefan Alfredsson <stefan@alfredsson.org>
+    # for the suggestion, Now the filenames get displayed right.
+    self.send_header("icy-name", base)
     self.end_headers()
 
     #Seek if the client requests it (a HTTP/1.1 request)
@@ -842,6 +849,9 @@ if __name__ == '__main__':
 
   if len(sys.argv) == 2:
     fname = sys.argv[1]
+    if os.path.isfile(fname) != 1:
+      print "edna: %s: No such file" % fname
+      raise SystemExit
   else:
     fname = 'edna.conf'
 
