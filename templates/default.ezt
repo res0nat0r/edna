@@ -1,0 +1,65 @@
+<html><head><title>[title]</title>
+<!-- CSS stuff goes here -->
+</head><body><h1>[title]</h1>
+[links]
+
+[if-any pictures]
+  <div id="pictures">
+  [for pictures]
+    <img src="[pictures.href]">
+  [end]
+  </div>
+[end]
+[if-any subdirs]
+  <div id="subdirectories">
+  <p>Subdirectories:</p>
+  <ul>
+  [for subdirs]
+    <li><a href="[subdirs.href]">[subdirs.text]</a></li>
+  [end]
+  </ul>
+  [if-any display-recursive]
+    <p><blockquote>
+      <a href="allrecursive.m3u">Play all songs (recursively)</a>
+      <br>
+      <a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>
+    </blockquote></p>
+  [end]
+  </div>
+[end]
+[if-any songs]
+  <div id="songs">
+  <p>Songs:</p>
+  <ul>
+  [for songs]
+    <li><a href="[songs.href].m3u">[songs.text]</a></li>
+  [end]
+  </ul>
+  <p><blockquote>
+    <a href="all.m3u">Play all songs</a>
+    <br>
+    <a href="shuffle.m3u">Shuffle all songs</a>
+  </blockquote></p>
+  </div>
+[end]
+[if-any playlists]
+  <div id="playlists">
+  <p>Playlists:</p>
+  <ul>
+  [for playlists]
+    <li><a href="[playlists.href]">[playlists.text]</a></li>
+  [end]
+  </ul></div>
+[end]
+
+[if-any subdirs][links]
+[else][if-any songs][links]
+[else][if-any playlists][links]
+[else]
+<i>Empty directory</i>
+[end][end][end]
+
+<p><a href="/stats/">Server statistics</a></p>
+<hr>
+<center>Powered by <a href="http://edna.sourceforge.net/">edna</a></center>
+</body></html>

@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.22 2001/02/19 18:52:39 gstein Exp $
+#   $Id: edna.py,v 1.23 2001/02/19 22:34:14 gstein Exp $
 #
 
 import SocketServer
@@ -40,14 +40,11 @@ import re
 import stat
 import whrandom
 import time
+import ezt
 
 error = __name__ + '.error'
 
 TITLE = 'Streaming MP3 Server'
-FOOTER = ('<hr>'
-          '<center>Powered by '
-          '<a href="http://edna.sourceforge.net/">edna</a>'
-          '</center>')
 
 # a pattern used to trim leading digits, spaces, and dashes from a song
 ### would be nice to get a bit fancier with the possible trimming
@@ -62,6 +59,10 @@ except ImportError:
     print "ERROR: your platform does not support threading OR forking."
     sys.exit(1)
   mixin = SocketServer.ForkingMixIn
+
+### move to a system variable. do some better path processing.
+default_template = ezt.Template('templates/default.ezt')
+
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
   def __init__(self, fname):
@@ -341,35 +342,51 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_header("Content-Type", "text/html")
     self.end_headers()
 
-    self.wfile.write('<html><head><title>%s</title>' % cgi.escape(title))
+    data = { 'title' : title,
+             'links' : self.tree_position(),
+             'pictures' : [ ],
+             'subdirs' : [ ],
+             'songs' : [ ],
+             'playlists' : [ ],
+             }
 
-    # stylesheet handling. do we have a URL or actual text?
-    if self.system.css_url:
-      self.wfile.write('<link rel=stylesheet href="%s" type="text/css">\n'
-                       % self.system.css_url)
-    elif self.system.css_text:
-      self.wfile.write('<style>%s</style>\n' % self.system.css_text)
-
-    self.wfile.write('</head><body><h1>%s</h1>\n' % cgi.escape(title))
-
-    links = self.tree_position()
-    self.wfile.write(links)
-
-    self.display_html_list('Pictures', pictures)
-    self.display_html_list('Subdirectories', subdirs, skiprec)
-    self.display_html_list('Songs', songs)
-    self.display_html_list('Playlists', playlists)
-
-    if not subdirs and not songs and not playlists:
-      self.wfile.write('<i>Empty directory</i>\n')
+    if not skiprec:
+      data['display-recursive'] = 'yes'
     else:
-      self.wfile.write(links)
+      data['display-recursive'] = ''
 
-    self.wfile.write('<p><a href="/stats/">Server statistics</a></p>')
-    self.wfile.write(FOOTER)
-    self.wfile.write('</body></html>\n')
+    for text, href in pictures:
+      d = _datablob()
+      d.href = urllib.quote(href)
+      data['pictures'].append(d)
+
+    for text, href in subdirs:
+      d = _datablob()
+      d.href = urllib.quote(href)
+      d.text = cgi.escape(text)
+      data['subdirs'].append(d)
+
+    for text, href in songs:
+      d = _datablob()
+      d.href = urllib.quote(href)
+      if isinstance(text, MP3Info):
+        d.text = cgi.escape(text.text)
+        d.info = text
+      else:
+        d.text = cgi.escape(text)
+      data['songs'].append(d)
+
+    for text, href in playlists:
+      d = _datablob()
+      d.href = urllib.quote(href)
+      d.text = cgi.escape(text)
+      data['playlists'].append(d)
+
+    template.generate(self.wfile, data)
 
   def tree_position(self):
+    ### fix: if current position is HOME, then return nothing...
+
     treepos = '<p><a href="' + self.build_url('','') + '">HOME</a>\n'
     mypath = self.translate_path()
     last = len(mypath)
@@ -381,42 +398,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       else:
         treepos = treepos + '<b> : </b><b>' + mypath[count] + '</b>\n'
     return treepos + '</p>'
-
-  def display_html_list(self, title, list, skipall=0):
-    if list:
-      if title != 'Pictures':
-        self.wfile.write('<div id="%s">\n'
-                         % cgi.escape(string.lower(title), 1))
-        self.wfile.write('<p>%s:</p><ul>\n' % title)
-      for text, href in list:
-        href = urllib.quote(href)
-        if isinstance(text, MP3Info):
-          text = text.text
-        text = cgi.escape(text)
-        if title == 'Pictures':
-          self.wfile.write('<img src="%s">\n' % href)
-        elif title == 'Songs':
-          self.wfile.write('<li><a href="%s.m3u">%s</a></li>\n' % (href, text))
-          #self.wfile.write('<li>%s&nbsp;[&nbsp;<a href="%s.m3u">Stream</a>&nbsp;|&nbsp;<a href="%s">Download</a>&nbsp;]</li>\n' % (text, href, href))
-        else:
-          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (href, text))
-      self.wfile.write('</ul>\n')
-      if not skipall:
-        if title == 'Songs':
-          self.wfile.write('<p><blockquote>'
-                           '<a href="all.m3u">Play all songs</a>'
-                           '<br>'
-                           '<a href="shuffle.m3u">Shuffle all songs</a>'
-                           '</blockquote></p>\n')
-        elif title == 'Subdirectories' : 
-          self.wfile.write('<p><blockquote>'
-                           '<a href="allrecursive.m3u">Play all songs (recursively)</a>'
-
-                           '<br>'
-                           '<a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>'
-                           '</blockquote></p>\n')
-      if title != 'Pictures':
-        self.wfile.write('</div>\n')
 
   def display_xml_page(self, title, subdirs, pictures=[], songs=[], playlists=[], skiprec=0):
     self.send_response(200)
@@ -668,6 +649,9 @@ class _SocketWriter:
       raise ClientAbortedException
 
 class ClientAbortedException(Exception):
+  pass
+
+class _datablob:
   pass
 
 _genres = [
