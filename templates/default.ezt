@@ -10,12 +10,13 @@
   [end]
   </div>
 [end]
+
 [if-any subdirs]
   <div id="subdirectories">
   <p>Subdirectories:</p>
   <ul>
   [for subdirs]
-    <li><a href="[subdirs.href]">[subdirs.text]</a></li>
+    <li><a href="[subdirs.href]">[subdirs.text]</a>[subdirs.is_new]</li>
   [end]
   </ul>
   [if-any display-recursive]
@@ -27,12 +28,13 @@
   [end]
   </div>
 [end]
+
 [if-any songs]
   <div id="songs">
   <p>Songs:</p>
   <ul>
   [for songs]
-    <li><a href="[songs.href].m3u">[songs.text]</a></li>
+    <li><a href="[songs.href].m3u">[songs.text]</a>[songs.is_new]</li>
   [end]
   </ul>
   <p><blockquote>
@@ -42,12 +44,13 @@
   </blockquote></p>
   </div>
 [end]
+
 [if-any playlists]
   <div id="playlists">
   <p>Playlists:</p>
   <ul>
   [for playlists]
-    <li><a href="[playlists.href]">[playlists.text]</a></li>
+    <li><a href="[playlists.href]">[playlists.text]</a>[playlists.is_new]</li>
   [end]
   </ul></div>
 [end]

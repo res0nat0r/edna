@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.28 2001/02/20 10:47:04 gstein Exp $
+#   $Id: edna.py,v 1.29 2001/02/20 11:14:17 gstein Exp $
 #
 
 import SocketServer
@@ -49,7 +49,7 @@ except ImportError:
 
 error = __name__ + '.error'
 
-TITLE = 'Streaming MP3 Server'
+TITLE = 'edna: Streaming MP3 Server'
 
 # a pattern used to trim leading digits, spaces, and dashes from a song
 ### would be nice to get a bit fancier with the possible trimming
@@ -221,7 +221,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.output_style = 'xml'
 
     if not path:
-      subdirs = map(lambda x: (x[1], x[1]+'/'), self.system.dirs)
+      subdirs = map(lambda x: (x[1], x[1]+'/', 0), self.system.dirs)
       self.display_page(TITLE, subdirs, skiprec=1)
     elif path[0] == 'stats':
       # the site statistics were requested
@@ -284,10 +284,12 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       thisdirlen = len(thisdir)
 
       for name in sort_dir(curdir):
+        st_ctime = os.stat(os.path.join(curdir, name))[8]
+
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
         if picture_extensions.has_key(ext):
-          pictures.append((base, name))
+          pictures.append((base, name, st_ctime))
           continue
         if extensions.has_key(ext):
           # if a song has a prefix that matches the directory, and something
@@ -307,13 +309,13 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if info.valid == 1:
               info.text = base
               base = info
-          songs.append((base, name))
+          songs.append((base, name, st_ctime))
         elif ext == '.m3u':
-          playlists.append((base, name))
+          playlists.append((base, name, st_ctime))
         else:
           newdir = os.path.join(curdir, name)
           if os.path.isdir(newdir):
-            subdirs.append((name, name + '/'))
+            subdirs.append((name, name + '/', st_ctime))
       self.display_page(TITLE, subdirs, pictures, songs, playlists)
 
   def display_stats(self):
@@ -373,18 +375,20 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     else:
       data['display-recursive'] = ''
 
-    for text, href in pictures:
+    for text, href, ctime in pictures:
       d = _datablob()
       d.href = urllib.quote(href)
+      d.is_new = check_new(ctime)
       data['pictures'].append(d)
 
-    for text, href in subdirs:
+    for text, href, ctime in subdirs:
       d = _datablob()
       d.href = urllib.quote(href)
       d.text = cgi.escape(text)
+      d.is_new = check_new(ctime)
       data['subdirs'].append(d)
 
-    for text, href in songs:
+    for text, href, ctime in songs:
       d = _datablob()
       d.href = urllib.quote(href)
       if isinstance(text, MP3Info):
@@ -392,12 +396,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         d.info = text
       else:
         d.text = cgi.escape(text)
+      d.is_new = check_new(ctime)
       data['songs'].append(d)
 
-    for text, href in playlists:
+    for text, href, ctime in playlists:
       d = _datablob()
       d.href = urllib.quote(href)
       d.text = cgi.escape(text)
+      d.is_new = check_new(ctime)
       data['playlists'].append(d)
 
     template.generate(self.wfile, data)
@@ -819,9 +825,20 @@ def sort_dir(d):
   l.sort()
   return l
 
-def dot2int(self, dotaddr):
+def dot2int(dotaddr):
   a, b, c, d = map(int, string.split(dotaddr, '.'))
   return (a << 24) + (b << 16) + (c << 8) + (d << 0)
+
+
+DAYS_NEW = 30   ### make this a config option
+
+# return empty string or a "new since..." string
+def check_new(ctime):
+  if (time.time() - ctime) < DAYS_NEW * 86400:
+    t = time.strftime('%B %d', time.localtime(ctime))
+    return ' <i>new since %s</i>' % t
+  return ''
+
 
 # Extensions that WinAMP can handle: (and their MIME type if applicable)
 extensions = { 
