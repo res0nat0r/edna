@@ -19,6 +19,7 @@ try:
 except ImportError:
   import sys
   sys.path.append('..')
+  del sys.modules['edna']
   import edna
 
 class EdnaSvc(TCPServerService.TCPServerService,
@@ -105,6 +106,8 @@ if __name__ == "__main__":
       customInstallOptions = "c:",
       customOptionHandler = customOptionHandler)    
     # Make sure these files are in the Python path...
+    sys.path.append("..")
     regsetup.FindRegisterModule("ednaNTSvc", 'ednaNTSvc.py', sys.path)
     regsetup.FindRegisterModule("TCPServerService", 'TCPServerService.py', sys.path)
     regsetup.FindRegisterModule("edna", "edna.py", "..")
+    regsetup.FindRegisterModule("ezt", "ezt.py", "..")
