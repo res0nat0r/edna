@@ -1,5 +1,4 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
-
 <html>
 <head>
 	<title>Edna - MP3 Server</title>
@@ -7,9 +6,9 @@
 
 <body bgcolor="White">
 <center>
-<h2>Edna - A streaming MP3 Server</h2>
+<h1>Edna - A streaming MP3 Server</h1>
 </center>
-<a name="home">
+
 <table border="0" cellspacing="0">
 <tr valign="top"><td>
 
@@ -33,133 +32,197 @@
 <table cellpadding="16"><tr><td>
 <!-- Content -->
 
-<h3>What Is Edna?</h3>
-
-Edna allows you to access your MP3 collection from any networked computer.  This
-software streams your MP3 via HTTP to any MP3 player that supports playing off a 
-remote connection (Winamp/FreeAmp/Sonique).
+<h2><a name="home">What Is Edna?</a></h2>
 <p>
-This software supports
-<ul>
-<li>Accessing your music collection from a remote computer.
-<li>URL support to allow people to stream a specific song.
-<li>The merging of multiple music collections while keeping the files on the remote computer.
-</ul>
-<h3>How Edna Works</h3>
+      Edna allows you to access your MP3 collection from any networked
+      computer.  This software streams your MP3 via HTTP to any MP3
+      player that supports playing off a remote connection
+      (Winamp/FreeAmp/Sonique).
+</p>
+<p>
+    This software supports
+    <ul>
+      <li>Accessing your music collection from a remote computer.</li>
+      <li>URL support to allow people to stream a specific song.</li>
+      <li>
+	The merging of multiple music collections while keeping the
+	files on the remote computer.
+      </li>
+    </ul>
+</p>
 
-Edna allows access to your MP3 directory by the web.  When a song is requested a stream is set up 
-between the media player and the edna server.
+<h2>How Edna Works</h2>
+<p>
+      Edna allows access to your MP3 directory by the web.  When a
+      song is requested a stream is set up between the media player
+      and the edna server.
+</p>
 <p>
 The music collection can be accessed by 
 <p>
-<center><table border="0" cellspacing="5"><tr>
+<table border="0" cellspacing="5"><tr align="center">
+<th>A Web Browser</th>
+<th>An Edna Client</th>
+</tr><tr>
 <td><img src="images/browser.jpg" width=198 height=145 alt="" border="0"></td>
 <td><img src="images/client.jpg" width=198 height=145 alt="" border="0"></td>
-</tr><tr align="center">
-<td><b>A Web Browser</b></td>
-<td><b>An Edna Client</b></td>
 </tr>
-</table></center>
-<a name="server">
-<h3>The Edna Server</h3>
+</table>
 
-The edna server is a very stable Python program that can be launched in several ways.
+<h2><a name="server">The Edna Server</a></h2>
+<p>
+      The edna server is a very stable Python program that can be
+      launched in several ways.
+</p>
 <ol>
-<li>As a command line python script.
-<li>As a NT Service
-<li>As a Windows Taskbar Service
+<li>As a command line python script.</li>
+<li>As a NT Service</li>
+<li>As a Windows Taskbar Service</li>
+</ol>
 
-<p><b>Command Line</b>
-<p>Start the program by typing <i>./edna.py</i> on a machine with Python installed.  If doing this from a remote terminal, try the command
-<i>./nohup edna.py</i> to allow the server to continue running even after the connection is closed.
+<h3>Command Line</h3>
+<p>
+      Start the program by typing <i>./edna.py</i> on a machine with
+      Python installed.  If doing this from a remote terminal, try the
+      command <i>./nohup edna.py</i> to allow the server to continue
+      running even after the connection is closed.
+</p>
 <p><center><img src="images/term.jpg" width=454 height=70 alt="" border="0"></center>
-<p><b>As an NT Service</b>
-<p>You also need the most recent Win32 extensions, and have NT 4.0, or 
-   Windows 2000 for this code to work.<br> 
-    <br>
-       Installation:  <br>
-       python ednaNTSvc.py -c <path to edna.conf> --startup auto install  <br>
-       Removal:  <br>
-       python ednaNTSvc.py remove  <br>
-            <br>
-   Official usage string output by ednaNTSvc.py:  <br>
-   Usage: 'ednaNTSvc.py [options] install|update|remove|start [...]|stop|restart [. 
-   ..]|debug [...]' 
-   Options for 'install' and 'update' commands only:  <br>
-    --username domain\username : The Username the service is to run under  <br>
-    --password password : The password for the username  <br>
-    --startup [manual|auto|disabled] : How the service starts, default = manual  <br>
-	
-<p><b>As a Windows Taskbar Service</b>	
-<p>Simply execute edna.exe.  You should notice that an icon appears in the taskbar.  This is the edna server running in the background.
-<p><img src="images/taskbar.jpg" width=191 height=28 alt="" border="0">
-</ol>
 
-<a name="client">
-<h3>The Edna Clients</h3>
-<p><b>Web Browser</b>
-<p>To view the edna server within a Web Browser, type the IP address of the server 
-followed by a colon and the port the server is running on.  If the edna server is configured to
-run on port 8000 and your ip address is 12.34.56.789, you would go visit <i>http://12.34.56.789:8000</i>
-<p><b>Edna Client</b>
-<p>Creating a specialized client has provides the user with benefits over the use of a web browser.
-  Some of the enhancements include.
-<ol>
-<li>A better understanding of where you are on the edna server
-<li>A clearer distinction between songs and folders
-<li>A way to play/enqueue songs from different folders
-<li>A way to play/enqueue albums from different Artists
-<li>The ability to play files from different servers
-<li>The ability to see what servers are available
-<li>A way to < ctrl > select the songs you want to play
-</ol>
-The client is built with Python and the wxPython cross platform GUI toolkit.  Instructions on adding
-your own features are here, and you can download it here.
+<h3>As an NT Service</h3>
+<p>
+   You also need the most recent Win32 extensions, and have NT 4.0, or 
+   Windows 2000 for this code to work.
+</p>
+<dl>
+  <dt><strong>Installation</strong></dt>
+  <dd>
+    <code>python ednaNTSvc.py -c <var>path to edna.conf</var> --startup auto install</code>
+    <p></p>
+  </dd>
+  <dt><strong>Removal</strong></dt>
+  <dd>
+    <code>python ednaNTSvc.py remove</code>
+    <p></p>
+  </dd>
+  <dt><strong>Official usage string output by ednaNTSvc.py</strong></dt>
+<dd><small><pre>   Usage: 'ednaNTSvc.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]' 
+   Options for 'install' and 'update' commands only:
+    --username domain\username : The Username the service is to run under
+    --password password : The password for the username
+    --startup [manual|auto|disabled] : How the service starts, default = manual
+</pre></small></dd>
+</dl>
 
-<a name="edit">
-<h3>Editing the source</h3>
-<p>The server code is found in edna.py.  Take a look at the code and you should be able to add your own
-features without much hassle.
+<h3>As a Windows Taskbar Service</h3>
+<p>
+Simply execute <code>edna.exe</code>.  You should notice that an icon
+appears in the taskbar.  This is the edna server running in the
+background.
+</p>
+<p>
+  <img src="images/taskbar.jpg" width=191 height=28 alt="" border="0">
+</p>
 
-<p>Edna also has some code in it to extract ID3 tags from MP3 files. 
-I'm not using it yet, but will add some code to display the data on the generated web pages. 
-I might also look into using some kind of template mechanism for generating the web pages. 
-A number of people have requested access lists to protect their files, so I'll be adding that soon, too. 
-If you have a pet feature, then please let me know! 
+<h2><a name="client">The Edna Clients</a></h2>
 
-<p>The client code can be found in edna_gui.py.  Most of the code was gui code was done in <a href="http://www.wxPython.org/">wxPython</a>.
-The nice thing is that you don't need to have python installed on your system to edit the code.  If you are running the edna.exe and have the 
-python15.dll on your system, you modify any of the files within the app directory.
+<h3>Web Browser</h3>
+<p>
+To view the edna server within a Web Browser, type the IP address of
+the server followed by a colon and the port the server is running on.
+If the edna server is configured to run on port 8000 and your ip
+address is 12.34.56.789, you would go visit
+<i>http://12.34.56.789:8000</i>
+</p>
 
-<a name="download">
-<h3>Download</h3>
+<h3>Edna Client</h3>
+<p>
+Creating a specialized client has provides the user with benefits over
+the use of a web browser.  Some of the enhancements include
+<ul>
+<li>A better understanding of where you are on the edna server</li>
+<li>A clearer distinction between songs and folders</li>
+<li>A way to play/enqueue songs from different folders</li>
+<li>A way to play/enqueue albums from different Artists</li>
+<li>The ability to play files from different servers</li>
+<li>The ability to see what servers are available</li>
+<li>A way to &lt; ctrl &gt; select the songs you want to play</li>
+</ul>
 
-<p>Edna is licensed under the <a href="http://www.fsf.org/copyleft/gpl.html">GPL</a>. It is a small <a href="http://www.python.org">Python</a> script. At the moment, it is about 500 lines (version 0.1 was only 250!). You can view the thing online, or grab the distribution. edna is checked into a CVS repository and is available for <a href="/cgi-bin/viewcvs.cgi/edna/">viewing with your web browser</a>. 
+The client is built with Python and the wxPython cross platform GUI
+toolkit.  Instructions on adding your own features are here, and you
+can download it here.
 
-<p>The server should work for any platform. I've tested it on Linux and Windows. I've been using Internet Explorer and WinAmp (on Windows) to navigate the pages and play the files. 
+<h2><a name="edit">Editing the source</a></h2>
+<p>
+      The server code is found in <code>edna.py</code>.  Take a look
+      at the code and you should be able to add your own features
+      without much hassle.
+</p>
+<p>
+      Edna also has some code in it to extract ID3 tags from MP3
+      files.  I'm not using it yet, but will add some code to display
+      the data on the generated web pages.  I might also look into
+      using some kind of template mechanism for generating the web
+      pages.  A number of people have requested access lists to
+      protect their files, so I'll be adding that soon, too.  If you
+      have a pet feature, then please let me know!
+</p>
+<p>
+      The client code can be found in edna_gui.py.  Most of the code
+      was gui code was done in <a
+      href="http://www.wxPython.org/">wxPython</a>.  The nice thing is
+      that you don't need to have python installed on your system to
+      edit the code.  If you are running the edna.exe and have the
+      python15.dll on your system, you modify any of the files within
+      the app directory.
+</p>
+
+<h2><a name="download">Download</a></h2>
+
+<p>
+Edna is licensed under the
+<a href="http://www.fsf.org/copyleft/gpl.html">GPL</a>. It is a small <a
+href="http://www.python.org">Python</a> script. At the moment, it is
+about 1000 lines (version 0.1 was only 250!). You can view the thing
+online, or grab the distribution. edna is checked into a CVS
+repository and is available for
+<a href="http://www.lyra.org/cgi-bin/viewcvs.cgi/edna/">viewing
+			    with your web browser</a>.
+</p>
+<p>
+  The server should work for any platform. I've tested it on Linux and
+  Windows. I've been using Internet Explorer and WinAmp (on Windows)
+  to navigate the pages and play the files.
+</p>
 <p>
 <table border=1 width="100%" cellspacing="0">
 <tr align="center"><td><b>Server</b></td><td>(edna.py)</td><td>(WinNT Service)</td><td>(Win32 exe)</td></tr>
 <tr align="center"><td><b>Client</b></td><td>(edna_gui.py)</td><td>&nbsp;</td><td>(Win32 exe)</td></tr>
 </table>
 
-<a name="configure">
-<h3>Configuration</h3>
-<p><b>Server</b>
-<p>Edit the edna.conf file with your setup. This is simple to do, as all you need to tell it is:
+<h2><a name="configure">Configuration</a></h2>
+<h3>Server</h3>
+<p>
+  Edit the <code>edna.conf</code> file with your setup. This is simple
+  to do, as all you need to tell it is:
+</p>
 <ol>
 <li>what port to run on 
 <li>the directories for your MP3 files 
 </ol>
-<p><b>Client</b>
-<p>Edit the edna_gui.conf file with your setup.  You need to tell the client:
+
+<h3>Client</h3>
+<p>
+  Edit the <code>edna_gui.conf</code> file with your setup.  You need
+  to tell the client:
+</p>
 <ol>
 <li>What servers you want to connect to
 <li>The path to your mp3 player
 </ol>
 
-<a name="contact">
-<h3>Contact Information</h3>
+<h2><a name="contact">Contact Information</a></h2>
 Greg Stein - Project Leader (<a href="mailto:gstein@lyra.org">gstein@lyra.org</a>)
 <br>
 <br>
@@ -168,6 +231,10 @@ Greg Stein - Project Leader (<a href="mailto:gstein@lyra.org">gstein@lyra.org</a
 </td></tr></table>
 
 </td></tr></table>
-<center>Last modified: Friday Sept 08 05:12:14 PST 2000 </center>
+<center>
+<!-- hhmts start -->
+Last modified: Wed Feb 21 05:10:50 PST 2001
+<!-- hhmts end -->
+</center>
 </body>
 </html>
