@@ -192,13 +192,15 @@
     <p>
       Starting with edna 0.4, it is now possible to use
       <span class="edna">edna</span> as an NT Service (thanks to Bill
-      Tutt). You will need the most recent Win32 extensions, and have
-      NT 4.0 or Windows 2000 for this code to work.
+      Tutt). You will need the
+      <a href="http://www.ActiveState.com/Products/ActivePython/win32all.html"><i>most
+	recent Python/Win32 extensions</i></a>,
+      and have NT 4.0 or Windows 2000 for this code to work.
     </p>
     <dl>
       <dt><strong>Installation</strong></dt>
       <dd>
-	<code>python ednaNTSvc.py -c <var>path to edna.conf</var> --startup auto install</code>
+	<code>python ednaNTSvc.py -c <var>C:/path/to/edna.conf</var> --startup auto install</code>
 	<p></p>
       </dd>
       <dt><strong>Removal</strong></dt>
@@ -206,7 +208,7 @@
 	<code>python ednaNTSvc.py remove</code>
 	<p></p>
       </dd>
-      <dt><strong>Official usage string output by ednaNTSvc.py</strong></dt>
+      <dt><strong>Usage string output from ednaNTSvc.py</strong></dt>
       <dd>
 	<small>
 	  <pre>Usage: 'ednaNTSvc.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]' 
@@ -218,6 +220,13 @@ Options for 'install' and 'update' commands only:
 	</small>
       </dd>
     </dl>
+
+    <h3>Starting edna from sysvinit scripts</h3>
+    <p>
+      I don't have any documentation for this right now. Please see
+      the <code>daemon</code> subdirectory for the scripts to
+      use. Adjust the paths for your local setup.
+    </p>
 
     <hr align=left width="30&#37;">
     <h2>Modifications</h2>
@@ -245,6 +254,7 @@ Options for 'install' and 'update' commands only:
     </p>
     <ul>
       <li>Matteo Bertini: quick navigation links</li>
+      <li>Steve Davis: init scripts</li>
       <li>Dieter Deyke: image display and playlist rewriting</li>
       <li>Jeffrey Griffith: server statistics, edna client, web design</li>
       <li>Stephen Kennedy: skipping the top-level directory, skip
@@ -264,7 +274,7 @@ Options for 'install' and 'update' commands only:
     <address><a href="mailto:gstein@lyra.org">Greg Stein</a></address>
 <!-- Created: Thu Feb 11 06:54:12 PST 1999 -->
 <!-- hhmts start -->
-Last modified: Thu Feb 22 00:00:33 PST 2001
+Last modified: Thu Feb 22 00:25:13 PST 2001
 <!-- hhmts end -->
   </body>
 </html>
