@@ -10,7 +10,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: ezt.py,v 1.1 2001/02/19 21:31:44 gstein Exp $
+#   $Id: ezt.py,v 1.2 2001/02/19 22:25:03 gstein Exp $
 #
 
 import string
@@ -105,11 +105,10 @@ class Template:
     fp.write(_get_value(refname, ref, ctx))
 
   def _cmd_if_any(self, args, fp, ctx):
+    "If the value is a non-empty string or non-empty list, then T else F."
     (((refname, ref),), t_section, f_section) = args
-    list = _get_value(refname, ref, ctx)
-    if isinstance(list, StringType):
-      raise NeedSequenceError()
-    self._do_if(list, t_section, f_section, fp, ctx)
+    value = _get_value(refname, ref, ctx)
+    self._do_if(value, t_section, f_section, fp, ctx)
 
   def _cmd_if_index(self, args, fp, ctx):
     (((refname, ref), value), t_section, f_section) = args
@@ -151,15 +150,18 @@ def _prepare_ref(refname):
   return refname, string.split(refname, '.')
 
 def _get_value(refname, ref, ctx):
-  if ctx.for_index.has_key(refname):
-    info = ctx.for_index[refname]
-    ob = info[0][info[1]]
+  if ctx.for_index.has_key(ref[0]):
+    list, idx = ctx.for_index[ref[0]]
+    ob = list[idx]
   elif ctx.data.has_key(ref[0]):
     ob = ctx.data[ref[0]]
   else:
-    raise UnknownReference()
+    raise UnknownReference(refname)
   for attr in ref[1:]:
-    ob = getattr(ob, attr)
+    try:
+      ob = getattr(ob, attr)
+    except AttributeError:
+      raise UnknownReference(refname)
   return ob
 
 class _context:
