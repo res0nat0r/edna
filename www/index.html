@@ -53,21 +53,10 @@
 
 <h2>How Edna Works</h2>
 <p>
-      Edna allows access to your MP3 directory by the web.  When a
-      song is requested a stream is set up between the media player
-      and the edna server.
+      Edna allows access to your MP3 directory through a web browser.
+      When a song is requested a stream is set up between the media
+      player and the edna server.
 </p>
-<p>
-The music collection can be accessed by 
-<p>
-<table border="0" cellspacing="5"><tr align="center">
-<th>A Web Browser</th>
-<th>An Edna Client</th>
-</tr><tr>
-<td><img src="images/browser.jpg" width=198 height=145 alt="" border="0"></td>
-<td><img src="images/client.jpg" width=198 height=145 alt="" border="0"></td>
-</tr>
-</table>
 
 <h2><a name="server">The Edna Server</a></h2>
 <p>
@@ -77,7 +66,6 @@ The music collection can be accessed by
 <ol>
 <li>As a command line python script.</li>
 <li>As a NT Service</li>
-<li>As a Windows Taskbar Service</li>
 </ol>
 
 <h3>Command Line</h3>
@@ -114,14 +102,11 @@ The music collection can be accessed by
 </pre></small></dd>
 </dl>
 
-<h3>As a Windows Taskbar Service</h3>
 <p>
-Simply execute <code>edna.exe</code>.  You should notice that an icon
-appears in the taskbar.  This is the edna server running in the
-background.
-</p>
-<p>
-  <img src="images/taskbar.jpg" width=191 height=28 alt="" border="0">
+  <small>
+  Some work has also been started to run edna as a
+  <a href="taskbar.html">taskbar service</a>.
+  </small>
 </p>
 
 <h2><a name="client">The Edna Clients</a></h2>
@@ -135,23 +120,12 @@ address is 12.34.56.789, you would go visit
 <i>http://12.34.56.789:8000</i>
 </p>
 
-<h3>Edna Client</h3>
 <p>
-Creating a specialized client has provides the user with benefits over
-the use of a web browser.  Some of the enhancements include
-<ul>
-<li>A better understanding of where you are on the edna server</li>
-<li>A clearer distinction between songs and folders</li>
-<li>A way to play/enqueue songs from different folders</li>
-<li>A way to play/enqueue albums from different Artists</li>
-<li>The ability to play files from different servers</li>
-<li>The ability to see what servers are available</li>
-<li>A way to &lt; ctrl &gt; select the songs you want to play</li>
-</ul>
-
-The client is built with Python and the wxPython cross platform GUI
-toolkit.  Instructions on adding your own features are here, and you
-can download it here.
+  <small>
+  Some work has been started on a
+  <a href="client.html">Windows GUI client</a>.
+  </small>
+</p>
 
 <h2><a name="edit">Editing the source</a></h2>
 <p>
@@ -167,15 +141,6 @@ can download it here.
       pages.  A number of people have requested access lists to
       protect their files, so I'll be adding that soon, too.  If you
       have a pet feature, then please let me know!
-</p>
-<p>
-      The client code can be found in edna_gui.py.  Most of the code
-      was gui code was done in <a
-      href="http://www.wxPython.org/">wxPython</a>.  The nice thing is
-      that you don't need to have python installed on your system to
-      edit the code.  If you are running the edna.exe and have the
-      python15.dll on your system, you modify any of the files within
-      the app directory.
 </p>
 
 <h2><a name="download">Download</a></h2>
@@ -195,11 +160,9 @@ repository and is available for
   Windows. I've been using Internet Explorer and WinAmp (on Windows)
   to navigate the pages and play the files.
 </p>
-<p>
-<table border=1 width="100%" cellspacing="0">
-<tr align="center"><td><b>Server</b></td><td>(edna.py)</td><td>(WinNT Service)</td><td>(Win32 exe)</td></tr>
-<tr align="center"><td><b>Client</b></td><td>(edna_gui.py)</td><td>&nbsp;</td><td>(Win32 exe)</td></tr>
-</table>
+    <p>
+      <i>download links...</i>
+    </p>
 
 <h2><a name="configure">Configuration</a></h2>
 <h3>Server</h3>
@@ -208,18 +171,8 @@ repository and is available for
   to do, as all you need to tell it is:
 </p>
 <ol>
-<li>what port to run on 
-<li>the directories for your MP3 files 
-</ol>
-
-<h3>Client</h3>
-<p>
-  Edit the <code>edna_gui.conf</code> file with your setup.  You need
-  to tell the client:
-</p>
-<ol>
-<li>What servers you want to connect to
-<li>The path to your mp3 player
+<li>what port to run on</li>
+<li>the directories for your MP3 files</li>
 </ol>
 
 <h2><a name="contact">Contact Information</a></h2>
@@ -233,7 +186,7 @@ Greg Stein - Project Leader (<a href="mailto:gstein@lyra.org">gstein@lyra.org</a
 </td></tr></table>
 <center>
 <!-- hhmts start -->
-Last modified: Wed Feb 21 05:10:50 PST 2001
+Last modified: Wed Feb 21 05:26:58 PST 2001
 <!-- hhmts end -->
 </center>
 </body>
