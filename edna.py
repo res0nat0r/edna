@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.34 2001/02/21 02:16:11 gstein Exp $
+#   $Id: edna.py,v 1.35 2001/02/21 09:48:07 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -70,25 +70,6 @@ except ImportError:
 
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
-  def __init__(self, fname):
-    prh = PseudoRequestHandler(fname)
-    self.port = prh.config.getint('server', 'port')
-    SocketServer.TCPServer.__init__(
-      self,
-      (prh.config.get('server', 'binding-hostname'), self.port),
-      prh)
-
-  def server_bind(self):
-    # set SO_REUSEADDR (if available on this platform)
-    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
-      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    BaseHTTPServer.HTTPServer.server_bind(self)
-
-
-class PseudoRequestHandler:
-  "Hold configuration and runtime state, and spawn real request handlers."
-
   def __init__(self, fname):
     self.userLog = [ ] # to track server usage
     self.userIPs = { } # log unique IPs
@@ -164,8 +145,18 @@ class PseudoRequestHandler:
       if not entry in self.acls:
         self.acls.append(entry)
 
-  def __call__(self, request, client_address, server):
-    return EdnaRequestHandler(request, client_address, server, self)
+    self.port = config.getint('server', 'port')
+    SocketServer.TCPServer.__init__(
+      self,
+      (config.get('server', 'binding-hostname'), self.port),
+      EdnaRequestHandler)
+
+  def server_bind(self):
+    # set SO_REUSEADDR (if available on this platform)
+    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
+      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    BaseHTTPServer.HTTPServer.server_bind(self)
 
   def log_user(self, ip, tm, url):
     if len(self.userLog) > 19:
@@ -195,11 +186,6 @@ class PseudoRequestHandler:
 
 class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-  def __init__(self, request, client_address, server, system):
-    self.system = system
-    SocketServer.BaseRequestHandler.__init__(self, request, client_address,
-                                             server)
-
   def do_GET(self):
     try:
       self._perform_GET()
@@ -207,7 +193,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       pass
 
   def _perform_GET(self):
-    if not self.system.acl_ok(self.client_address[0]):
+    if not self.server.acl_ok(self.client_address[0]):
       self.send_error(403, 'Forbidden')
       return
     path = self.translate_path()
@@ -221,9 +207,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           path.pop(0)
           self.output_style = 'xml'
 
-    if not path and len(self.system.dirs) > 1:
+    if not path and len(self.server.dirs) > 1:
       subdirs = [ ]
-      for d, name in self.system.dirs:
+      for d, name in self.server.dirs:
         subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
                                  text=cgi.escape(name)))
       self.display_page(TITLE, subdirs, skiprec=1)
@@ -231,12 +217,12 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # the site statistics were requested
       self.display_stats()
     else:
-      if len(self.system.dirs) == 1:
+      if len(self.server.dirs) == 1:
         url = '/'
-        curdir = self.system.dirs[0][0]
+        curdir = self.server.dirs[0][0]
       else:
         url = '/' + urllib.quote(path[0])
-        for d, name in self.system.dirs:
+        for d, name in self.server.dirs:
           if path[0] == name:
             curdir = d
             path.pop(0)
@@ -349,14 +335,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
              'ips' : [ ],
              }
 
-    user_log = self.system.userLog
+    user_log = self.server.userLog
     for i in range(len(user_log) - 1, -1, -1):
       d = _datablob()
       d.ip, tm, d.url = user_log[i]
       d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
       data['users'].append(d)
 
-    ip_log = self.system.userIPs
+    ip_log = self.server.userIPs
     ips = ip_log.keys()
     ips.sort()
     for ip in ips:
@@ -366,17 +352,17 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
       data['ips'].append(d)
 
-    self.system.stats_template.generate(self.wfile, data)
+    self.server.stats_template.generate(self.wfile, data)
 
   def display_page(self, title, subdirs, pictures=[], songs=[], playlists=[],
                    skiprec=0):
 
     ### implement a URL-selectable style here with a cache of templates
     if self.output_style == 'html':
-      template = self.system.default_template
+      template = self.server.default_template
       content_type = 'text/html'
     else: # == 'xml'
-      template = self.system.xml_template
+      template = self.server.xml_template
       content_type = 'text/xml'
 
     self.send_response(200)
@@ -466,7 +452,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         str = os.path.normpath(os.path.join(dir, str))
         if not os.path.exists(str): continue
         found = 0
-        for d, name in self.system.dirs:
+        for d, name in self.server.dirs:
           if string.lower(str[:len(d)]) == string.lower(d):
             str = name + str[len(d):]
             found = 1
@@ -483,7 +469,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if any_extensions.has_key(ext):
       # log the request of this file
       ip, port = self.client_address
-      self.system.log_user(ip, time.time(), url + '/' + urllib.quote(name))
+      self.server.log_user(ip, time.time(), url + '/' + urllib.quote(name))
 
       # get the file and info for delivery
       type = any_extensions[ext]
@@ -573,7 +559,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.log_message('<unknown URL> %s', code)
 
   def log_message(self, format, *args):
-    log = self.system.config.get('server', 'log')
+    log = self.server.config.get('server', 'log')
     if not log:
       return
 
