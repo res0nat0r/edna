@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.5 2000/01/28 01:32:52 gstein Exp $
+#   $Id: edna.py,v 1.6 2000/04/10 19:05:57 gstein Exp $
 #
 
 import SocketServer
@@ -446,8 +446,11 @@ class ID3:
 
     file.seek(0, 0)
 
+def _usable_file(fname):
+  return fname[0] != '.'
+
 def sort_dir(d):
-  l = os.listdir(d)
+  l = filter(_usable_file, os.listdir(d))
   l.sort()
   return l
 
