@@ -1,0 +1,60 @@
+#!/bin/sh
+#
+# Startup script for the edna mp3 mini server 
+#
+# chkconfig:2345 97 97
+# description: edna is a mini mp3 webserver 
+#
+# processname: python
+# pidfile: /var/run/ednad.pid
+# config: 
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+[ -f /usr/local/bin/edna.py ] || exit 0
+
+RETVAL=0
+
+start() {
+    echo -n "Starting ednad: "
+    daemon /usr/local/bin/ednad
+    echo
+    touch /var/lock/subsys/ednad
+    return $RETVAL
+}
+
+stop() {
+    echo -n "Shutting down ednad: "
+    EDNADPID=
+    EDNADPID=$(cat /var/run/edna.pid)
+     kill $EDNADPID
+    echo
+    rm -f /var/lock/subsys/ednad /var/run/ednad.pid
+    return $RETVAL
+}
+
+# See how we were called.
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  status)
+    EDNADPID=
+    EDNADPID=$(cat /var/run/ednad.pid)
+   echo -n "Checking for ednad, PID is : " $EDNADPID
+   echo 
+	;;
+  restart)
+	 stop
+	 start
+	;;
+  *)
+	echo "Usage: $0 {start | stop | restart | status}"
+	exit 1
+esac
+
+exit 0
