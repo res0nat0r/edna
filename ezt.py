@@ -199,35 +199,3 @@ class UnknownReference(Exception):
 
 class NeedSequenceError(Exception):
   pass
-
-
-def test():
-  p = '''\
-[if-any foo]
-  got rows
-  [for foo]
-    [if-index foo even]even line: [foo]
-    [else]odd line: [foo]
-    [end]
-    [if-index foo last]at the end[end]
-  [end]
-  test: [baz]
-[else]
-  no rows "[baz]"
-[end]
-[if-any bar]
-  got rows in bar
-[else]
-  no rows in bar
-[end]
-'''
-  t = Template()
-  t.parse(p)
-  import pprint
-  pprint.pprint(t.program)
-  import sys
-  data = { 'foo' : ['a', 'b', 'c'],
-           'bar' : [],
-           'baz' : 'this-is-baz'
-           }
-  t.generate(sys.stdout, data)
