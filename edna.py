@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.45 2002/09/24 11:19:57 halux2001 Exp $
+#   $Id: edna.py,v 1.46 2002/09/25 10:03:58 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -108,6 +108,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     template_path = os.path.join(os.path.dirname(fname), template_path)
 
     debug_level = config.get('extra', 'debug_level')
+    if debug_level == '1':
+      print 'Running in debug mode'
 
     tfname = os.path.join(template_path, template_file)
     self.default_template = ezt.Template(tfname)
@@ -214,7 +216,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       self._perform_GET()
     except ClientAbortedException:
-      pass
+      Messages.debug_message('DEBUG --- Exception catched in "do_GET" --- ClientAbortException')
 
   def _perform_GET(self):
 
@@ -236,8 +238,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
               this_user, this_pass = name, password
 
       if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
-        #print 'Authenticated:',this_user, this_pass
-        pass
+        Messages.debug_message('DEBUG --- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
       else:
         realm='edna'
         self.send_response(401)
@@ -245,8 +246,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         return
 
-
-    
     path = self.translate_path()
     if path is None:
       self.send_error(400, 'Illegal URL construction')
@@ -627,7 +626,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       except ValueError:
         break
       if idx == 0:
-        # illegal path: the '..' attempted to go above the root
+        Messages.debug_message('DEBUG --- Warning in translate_path --- Illegal path: the \'..\' attempted to go above the root')
         return None
       del parts[idx-1:idx+1]
     return parts
@@ -879,7 +878,7 @@ class MP3Info:
 
     if self.bitrate is None or self.samplerate is None:
       # invalid frame header
-      Messages.debug_message('DEBUG --- Warning: invalid frame header')
+      Messages.debug_message('DEBUG --- Warning in _parse_header --- invalid frame header')
 
     self.mode = _modes[mode]
 
@@ -953,7 +952,6 @@ class OggInfo:
   """
 
   def __init__(self, name):
-    print 'we are now in OggInfo'
     self.valid = 0
     #
     # Generic File Info
@@ -1010,7 +1008,7 @@ DAYS_NEW = 30   ### make this a config option
 
 class Messages:
   def debug_message(self, message):
-    if debug_level == 1:
+    if debug_level == '1':
       print message
 
 # return empty string or a "new since..." string
