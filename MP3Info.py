@@ -107,10 +107,10 @@ class ID3v2Frame:
             self.f_data_length_indicator   = flags >> 0 & 1 #p
 
         self.size = _from_synch_safe(size)
-	try:
-		self.data = _strip_zero(file.read(self.size))
-	except MemoryError:
-		print 'Warning --- Memoryerror catched in ID3v2Frame'
+        try:
+                self.data = _strip_zero(file.read(self.size))
+        except MemoryError:
+                print 'Warning --- Memoryerror catched in ID3v2Frame'
 
 _genres = [
     "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
@@ -267,11 +267,11 @@ class MPEG:
         self.valid = 0
 
         file.seek(0, 2)
-	self.filesize = float(file.tell())
-	# this is used on the web page
-	self.filesize2 = round(float(self.filesize/1024/1024), 2)
+        self.filesize = float(file.tell())
+        # this is used on the web page
+        self.filesize2 = round(float(self.filesize/1024/1024), 2)
         
-	file.seek(0, 0)
+        file.seek(0, 0)
 
         self.version = 0
         self.layer = 0
@@ -388,9 +388,8 @@ class MPEG:
             self.framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
             self.samplesperframe = 1152.0
         self.length_minutes = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) / 60)
-	self.length_seconds = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) % 60)
-	
-	self.length = float(str(self.length_minutes) + '.' + str(self.length_seconds))
+        self.length_seconds = int((self.filesize / self.framelength) * (self.samplesperframe / self.samplerate) % 60)
+        self.length = float(str(self.length_minutes) + '.' + str(self.length_seconds))
 
         self.valid = 1
 
@@ -438,7 +437,7 @@ class MP3Info:
             return
 
         for tag in self.id3.tags.keys():
-	    if tag == 'TT2' or tag == 'TIT2':
+            if tag == 'TT2' or tag == 'TIT2':
                 self.title = self.id3.tags[tag]
             elif tag == 'TP1' or tag == 'TPE1':
                 self.artist = self.id3.tags[tag]
@@ -462,7 +461,7 @@ class MP3Info:
                     except IndexError:
                         self.genre = ""
             elif tag == 'TEN' or tag == 'TENC':
-		self.encoder = self.id3.tags[tag]
+                self.encoder = self.id3.tags[tag]
 
 if __name__ == '__main__':
     import sys

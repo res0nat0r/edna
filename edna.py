@@ -23,7 +23,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.50 2002/09/25 16:53:58 halux2001 Exp $
+#   $Id: edna.py,v 1.51 2002/09/26 08:58:11 halux2001 Exp $
 #
 
 __version__ = '0.4'
@@ -371,9 +371,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
           if ext == '.ogg':
             if oggSupport == 'yes':
-	      # doesn't work yet, default.ezt calls some info.mpeg things that are only in MP3Info.py :(
-	      #info = OggInfo(fullpath)
-	      info = MP3Info.MP3Info(open(fullpath, 'rb'))
+              # doesn't work yet, default.ezt calls some info.mpeg things that are only in MP3Info.py :(
+              #info = OggInfo(fullpath)
+              info = MP3Info.MP3Info(open(fullpath, 'rb'))
             else:
               continue
           else:  
@@ -553,9 +553,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     ext = string.lower(ext)
     if any_extensions.has_key(ext):
       if not picture_extensions.has_key(ext):
-      	# log the request of this file
-      	ip, port = self.client_address
-      	self.server.log_user(ip, time.time(), url + '/' + urllib.quote(name))
+        # log the request of this file
+        ip, port = self.client_address
+        self.server.log_user(ip, time.time(), url + '/' + urllib.quote(name))
 
       # get the file and info for delivery
       type = any_extensions[ext]
@@ -846,16 +846,16 @@ if __name__ == '__main__':
 
   svr = Server(fname)
   if oggSupport == 'yes':
-  	print 'Ogg Vorbis support enabled'
+    print 'Ogg Vorbis support enabled'
   else:
-  	print 'Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules'
+    print 'Ogg Vorbis support disabled, to enable it you will need to install the "pyogg" and the "pyvorbis" modules'
   
   print "edna: serving on port %d..." % svr.port
   try:
-  	svr.serve_forever()
+    svr.serve_forever()
   except KeyboardInterrupt:
-  	print "\nKeyboard interrupt --> exit."
-	sys.exit(0)
+    print "\nKeyboard interrupt --> exit."
+    sys.exit(0)
 
 ##########################################################################
 #
