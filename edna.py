@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.11 2001/02/17 13:35:47 gstein Exp $
+#   $Id: edna.py,v 1.12 2001/02/19 00:46:39 gstein Exp $
 #
 
 import SocketServer
@@ -251,7 +251,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
           newdir = os.path.join(curdir, name)
           if os.path.isdir(newdir):
-            subdirs.append(name, name + '/')
+            subdirs.append((name, name + '/'))
       self.display_page('select music', subdirs, songs, playlists)
 
   def display_page(self, title, subdirs, songs=[], playlists=[], skiprec=0):
