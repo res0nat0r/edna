@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.24 2001/02/19 23:10:48 rassilon Exp $
+#   $Id: edna.py,v 1.25 2001/02/19 23:23:31 gstein Exp $
 #
 
 import SocketServer
@@ -382,7 +382,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       d.text = cgi.escape(text)
       data['playlists'].append(d)
 
-    template.generate(self.wfile, data)
+    default_template.generate(self.wfile, data)
 
   def tree_position(self):
     ### fix: if current position is HOME, then return nothing...
