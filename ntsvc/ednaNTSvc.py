@@ -22,7 +22,7 @@ class EdnaSvc(TCPServerService.TCPServerService,
               # any pending requests, instead of making the service
               # hang around until all pending requests are finished.
               TCPServerService.SvcTrackingThreadingMixin,
-              BaseHTTPServer.HTTPServer):
+              edna.Server):
   # Here belong some special attributes pertaining to the installation
   # of this service.
   # _svc_name_, and _svc_display_name_ are required!
@@ -44,9 +44,8 @@ class EdnaSvc(TCPServerService.TCPServerService,
   
   def __init__(self, args):
     fname = win32serviceutil.GetServiceCustomOption(self, "ConfigurationFile")
-    prh = edna.PseudoRequestHandler(fname)
-    self.port = prh.config.getint('server', 'port')
-    TCPServerService.TCPServerService.__init__(self, args, (prh.config.get('server', 'binding-hostname'), self.port), prh)
+    edna.Server.__init__(self, fname)
+    TCPServerService.TCPServerService.__init__(self, args)
 
   def waitForPendingRequests(self):
     """
@@ -66,13 +65,6 @@ class EdnaSvc(TCPServerService.TCPServerService,
       # if for example it we've gone 5+ min, and we still have some threads
       # that still haven't shutdown.
       
-  def server_bind(self):
-    # set SO_REUSEADDR (if available on this platform)
-    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
-      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    BaseHTTPServer.HTTPServer.server_bind(self)
-    
     
 ConfigFileNotFound = "ConfigFileNotFound"
 

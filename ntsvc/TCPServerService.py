@@ -54,7 +54,7 @@ class TCPServerService(win32serviceutil.ServiceFramework):
   This class is the glue between acting as an NT service, and
   any arbitrary SocketServer.TCPServer.
   """
-  def __init__(self, args, tcpargs, rh):
+  def __init__(self, args):
     # Kick off the NT service framework.
     # This registers win32serviceutil.ServiceFramework.ServiceCtrlHandler
     # as the Python routine to be invoked when SCM (Service Control Mangager)
@@ -74,10 +74,6 @@ class TCPServerService(win32serviceutil.ServiceFramework):
     # Hang onto this module for other people to use for logging purposes.
     import servicemanager
     self.servicemanager = servicemanager
-    SocketServer.TCPServer.__init__(
-      self,
-      tcpargs,
-      rh)
     
   def SvcStop(self):
     self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
