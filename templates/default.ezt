@@ -1,18 +1,21 @@
 <html><head><title>edna: [title]</title>
-<style><!--
+<style type="text/css"><!--
   A:link { text-decoration:none }
   A:visited { text-decoration:none }
   A:active { text-decoration:none }
   A:hover { text-decoration:underline; color:#ff0000 }
+  .isnew { font-size:75%; font-style:italic; color:#008000;
+           margin-left: 2em }
 --></style>
 </head><body link="#444488" alink="#884444" vlink="#444488">
+<table width="100%" bgcolor="#bbbbff" cellpadding=2><tr>
+  <td><font size="+2">
 [if-any links]
-  <table width="100%" bgcolor="#bbbbff"><tr>
-    <td><font size="+2">[links]</font></td>
-  </tr></table>
+  [links]
 [else]
-  <h1>edna: [title]</h1>
+  <strong>edna: [title]</strong>
 [end]
+</font></td></tr></table>
 
 [if-any pictures]
   [for pictures]
@@ -33,9 +36,9 @@
   [end]
   </ul>
   [if-any display-recursive]
-    &nbsp;&nbsp;<a href="allrecursive.m3u">Play all songs (recursively)</a>
+    &nbsp;&nbsp;<a href="allrecursive.m3u"><em>Play all songs (recursively)</em></a>
     <br>
-    &nbsp;&nbsp;<a href="shufflerecursive.m3u">Shuffle all songs (recursively)</a>
+    &nbsp;&nbsp;<a href="shufflerecursive.m3u"><em>Shuffle all songs (recursively)</em></a>
   [end]
   </td></tr></table></td></tr></table>
   </p>
@@ -53,9 +56,9 @@
     <li><a href="[songs.href].m3u">[songs.text]</a>[songs.is_new]</li>
   [end]
   </ul>
-  &nbsp;&nbsp;<a href="all.m3u">Play all songs</a>
+  &nbsp;&nbsp;<a href="all.m3u"><em>Play all songs</em></a>
   <br>
-  &nbsp;&nbsp;<a href="shuffle.m3u">Shuffle all songs</a>
+  &nbsp;&nbsp;<a href="shuffle.m3u"><em>Shuffle all songs</em></a>
   </td></tr></table></td></tr></table>
   </p>
 [end]
