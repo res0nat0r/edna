@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.30 2001/02/20 11:22:47 gstein Exp $
+#   $Id: edna.py,v 1.31 2001/02/20 13:41:26 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -41,6 +41,7 @@ import re
 import stat
 import random
 import time
+import struct
 import ezt
 
 try:
@@ -166,13 +167,13 @@ class PseudoRequestHandler:
   def __call__(self, request, client_address, server):
     return EdnaRequestHandler(request, client_address, server, self)
 
-  def log_user(self, ip, tm, fname):
+  def log_user(self, ip, tm, url):
     if len(self.userLog) > 19:
       # delete the oldest entry
       self.userLog.pop(0)
 
     # append it to the queue
-    self.userLog.append((ip, tm, fname))
+    self.userLog.append((ip, tm, url))
 
     if ip not in self.userIPs.keys():
       # add the entry for the first time
@@ -258,8 +259,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if os.path.isfile(pathname):
           # requested a file.
-          ip, port = self.client_address
-          self.system.log_user(ip, time.time(), pathname)
           self.serve_file(p, pathname, url)
           return
 
@@ -284,7 +283,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       thisdirlen = len(thisdir)
 
       for name in sort_dir(curdir):
-        st_ctime = os.stat(os.path.join(curdir, name))[8]
+        st_ctime = os.stat(os.path.join(curdir, name))[stat.ST_CTIME]
 
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
@@ -306,7 +305,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           file = open(curdir + '/' + name, 'rb')
           if file:
             info = MP3Info(file)
-            if info.valid == 1:
+            if info.valid:
               info.text = base
               base = info
           songs.append((base, name, st_ctime))
@@ -330,9 +329,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     user_log = self.system.userLog
     for i in range(len(user_log) - 1, -1, -1):
       d = _datablob()
-      d.ip, tm, fname = user_log[i]
+      d.ip, tm, d.url = user_log[i]
       d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
-      d.fname = cgi.escape(fname)
       data['users'].append(d)
 
     ip_log = self.system.userIPs
@@ -491,6 +489,11 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     base, ext = os.path.splitext(name)
     ext = string.lower(ext)
     if any_extensions.has_key(ext):
+      # log the request of this file
+      ip, port = self.client_address
+      self.system.log_user(ip, time.time(), url + '/' + urllib.quote(name))
+
+      # get the file and info for delivery
       type = any_extensions[ext]
       f = open(fullpath, 'rb')
       clen = os.fstat(f.fileno())[stat.ST_SIZE]
@@ -668,28 +671,37 @@ _genres = [
   ]
 
 _bitrates = [
-  [ # MPEG-1
-    [0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448], # Layer 1
-    [0, 32, 48, 56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320, 384], # Layer 2
-    [0, 32, 40, 48,  56,  64,  80,  96, 112, 128, 160, 192, 224, 256, 320]  # Layer 3
+  [ # MPEG-2 & 2.5
+    [0,32,48,56, 64, 80, 96,112,128,144,160,176,192,224,256,None], # Layer 1
+    [0, 8,16,24, 32, 40, 48, 56, 64, 80, 96,112,128,144,160,None], # Layer 2
+    [0, 8,16,24, 32, 40, 48, 56, 64, 80, 96,112,128,144,160,None]  # Layer 3
     ],
 
-  [ # MPEG-2 & 2.5
-    [0, 32, 48, 56,  64,  80,  96, 112, 128, 144, 160, 176, 192, 224, 256], # Layer 1
-    [0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160], # Layer 2
-    [0,  8, 16, 24,  32,  40,  48,  56,  64,  80,  96, 112, 128, 144, 160]  # Layer 3
+  [ # MPEG-1
+    [0,32,64,96,128,160,192,224,256,288,320,352,384,416,448,None], # Layer 1
+    [0,32,48,56, 64, 80, 96,112,128,160,192,224,256,320,384,None], # Layer 2
+    [0,32,40,48, 56, 64, 80, 96,112,128,160,192,224,256,320,None]  # Layer 3
     ]
   ]
 
 _samplerates = [
-  [ 44100, 48000, 32000], # MPEG-1
-  [ 22050, 24000, 16000], # MPEG-2
-  [ 11025, 12000,  8000]  # MPEG-2.5
+  [ 11025, 12000,  8000, None], # MPEG-2.5
+  [  None,  None,  None, None], # reserved
+  [ 22050, 24000, 16000, None], # MPEG-2
+  [ 44100, 48000, 32000, None], # MPEG-1
   ]
 
 _modes = [ "stereo", "joint stereo", "dual channel", "mono" ]
 
+_MP3_HEADER_SEEK_LIMIT = 2000
+
 class MP3Info:
+  """Extra information about an MP3 file.
+
+  See http://www.dv.co.yu/mpgscript/mpeghdr.htm for information about the
+  header and ID3v1.1.
+  """
+
   def __init__(self, file):
     self.valid = 0
 
@@ -699,92 +711,135 @@ class MP3Info:
     file.seek(0, 2)
     self.filesize = file.tell()
 
-    #
-    # MPEG3 Info
-    #
+    # find a frame header, then parse it
+    offset, bytes = self._find_header(file)
+    if offset != -1:
+      self._parse_header(bytes)
+      ### offset + framelength will find another header. verify??
+
+    if self.valid:
+      self._parse_xing(file)
+
+    # always parse out the ID3 information
+    self._parse_id3(file)
+
+    # back to the beginning!
     file.seek(0, 0)
-    header = file.read(4)  # AAAAAAAA AAABBCCD EEEEFFGH IIJJKLMM
-    if len(header) == 4:
-      bytes = ord(header[0])<<24 | ord(header[1])<<16 | ord(header[2])<<8 | ord(header[3])
-      mpeg_version =    (bytes >> 19) & 3  # BB   00 = MPEG2.5, 01 = res, 10 = MPEG2, 11 = MPEG1  
-      layer =           (bytes >> 17) & 3  # CC   00 = res, 01 = Layer 3, 10 = Layer 2, 11 = Layer 1
-      #protection_bit = (bytes >> 16) & 1  # D    0 = protected, 1 = not protected
-      bitrate =         (bytes >> 12) & 15 # EEEE 0000 = free, 1111 = bad
-      samplerate =      (bytes >> 10) & 3  # F    11 = res
-      padding_bit =     (bytes >> 9)  & 1  # G    0 = not padded, 1 = padded
-      #private_bit =    (bytes >> 8)  & 1  # H
-      mode =            (bytes >> 6)  & 3  # II   00 = stereo, 01 = joint stereo, 10 = dual channel, 11 = mono
-      #mode_extension = (bytes >> 4)  & 3  # JJ
-      #copyright =      (bytes >> 3)  & 1  # K    00 = not copyrighted, 01 = copyrighted
-      #original =       (bytes >> 2)  & 1  # L    00 = copy, 01 = original
-      #emphasis =       (bytes >> 0)  & 3  # MM   00 = none, 01 = 50/15 ms, 10 = res, 11 = CCIT J.17
 
-      if mpeg_version == 0:
-        self.mpeg_version = 2.5
-      elif mpeg_version == 2: 
-        self.mpeg_version = 2
-### One of my MP3s had a mpeg_version of 1, and allowing this
-### let it through. (rassilon, Holy Night)
-      elif mpeg_version == 3 or mpeg_version == 1:
-        self.mpeg_version = 1
-      else:
-        self.mpeg_version = None
+  def _find_header(self, file):
+    file.seek(0, 0)
+    amount_read = 0
 
-      self.layer = 4 - layer
-###
-###   I don't know why I had to do this, but otherwise
-###   the bitrate calc barfed on one MP3 I have. (rassilon, Holy Night)
-###      if layer == 0:
-###        self.layer = None
-        
-      try:
-        self.bitrate = _bitrates[int(self.mpeg_version) - 1][self.layer - 1][bitrate]
-      except IndexError:
-        self.bitrate = None
+    # see if we get lucky with the first four bytes
+    amt = 4
 
-      try:
-        self.samplerate = _samplerates[int(round(self.mpeg_version)) - 1][samplerate]
-      except IndexError:
-        self.samplerate = None
+    while amount_read < _MP3_HEADER_SEEK_LIMIT:
+      header = file.read(amt)
+      if len(header) < amt:
+        # awfully short file. just give up.
+        return -1, None
 
-      if self.bitrate and self.samplerate and self.layer:
-        if self.layer == 1:
-          framelength = ((  12 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit) * 4
-          samplesperframe = 384.0
-        else:
-          framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
-          samplesperframe = 1152.0
-        self.length = (self.filesize / framelength) * (samplesperframe / self.samplerate)
-      else:
-        self.length = None
+      amount_read = amount_read + len(header)
 
-      try:
-        self.mode = _modes[mode]
-      except IndexError:
-        self.mode = None
-        
-      # Xing-specific header info to properly approximate bitrate
-      # and length for VBR (variable bitrate) encoded mp3s
-      file.seek(0, 0)
-      header = file.read(128)
+      # on the next read, grab a lot more
+      amt = 500
 
-      i = string.find(header, 'Xing')
-      if i > 0:
-        i = i + 4
+      # look for the sync byte
+      offset = string.find(header, chr(255))
+      if offset == -1:
+        continue
+      ### maybe verify more sync bits in next byte?
 
-        flags  = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
-        if flags & 0x11:
-          frames = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
-          bytes  = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
-          #vbr    = ord(header[i])<<24 | ord(header[i+1])<<16 | ord(header[i+2])<<8 | ord(header[i+3]); i = i + 4
+      if offset + 4 > len(header):
+        more = file.read(4)
+        if len(more) < 4:
+          # end of file. can't find a header
+          return -1, None
+        amount_read = amount_read + 4
+        header = header + more
+      return amount_read - len(header) + offset, header[offset:offset+4]
 
-          if self.samplerate:
-            self.bitrate = (bytes * 8.0 / frames) * (self.samplerate / samplesperframe) / 1000
-            self.length = frames * samplesperframe / self.samplerate
+    # couldn't find the header
+    return -1, None
 
-    #
-    # ID3 Info
-    #
+  def _parse_header(self, header):
+    "Parse the MPEG frame header information."
+
+    # AAAAAAAA AAABBCCD EEEEFFGH IIJJKLMM
+    (bytes,) = struct.unpack('>i', header)
+    mpeg_version =    (bytes >> 19) & 3  # BB   00 = MPEG2.5, 01 = res, 10 = MPEG2, 11 = MPEG1  
+    layer =           (bytes >> 17) & 3  # CC   00 = res, 01 = Layer 3, 10 = Layer 2, 11 = Layer 1
+    #protection_bit = (bytes >> 16) & 1  # D    0 = protected, 1 = not protected
+    bitrate =         (bytes >> 12) & 15 # EEEE 0000 = free, 1111 = bad
+    samplerate =      (bytes >> 10) & 3  # F    11 = res
+    padding_bit =     (bytes >> 9)  & 1  # G    0 = not padded, 1 = padded
+    #private_bit =    (bytes >> 8)  & 1  # H
+    mode =            (bytes >> 6)  & 3  # II   00 = stereo, 01 = joint stereo, 10 = dual channel, 11 = mono
+    #mode_extension = (bytes >> 4)  & 3  # JJ
+    #copyright =      (bytes >> 3)  & 1  # K    00 = not copyrighted, 01 = copyrighted
+    #original =       (bytes >> 2)  & 1  # L    00 = copy, 01 = original
+    #emphasis =       (bytes >> 0)  & 3  # MM   00 = none, 01 = 50/15 ms, 10 = res, 11 = CCIT J.17
+
+    if mpeg_version == 0:
+      self.mpeg_version = 2.5
+    elif mpeg_version == 2: 
+      self.mpeg_version = 2
+    elif mpeg_version == 3:
+      self.mpeg_version = 1
+    else:
+      # invalid frame header.
+      return
+
+    self.layer = 4 - layer
+    if self.layer == 0:
+      # invalid frame header
+      return
+
+    self.bitrate = _bitrates[mpeg_version & 1][self.layer - 1][bitrate]
+    self.samplerate = _samplerates[mpeg_version][samplerate]
+
+    if self.bitrate is None or self.samplerate is None:
+      # invalid frame header
+      return
+
+    self.mode = _modes[mode]
+
+    if self.layer == 1:
+      framelength = ((  12 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit) * 4
+      samplesperframe = 384.0
+    else:
+      framelength =  ( 144 * (self.bitrate * 1000.0)/self.samplerate) + padding_bit
+      samplesperframe = 1152.0
+    self.length = (self.filesize / framelength) * (samplesperframe / self.samplerate)
+
+    # found a valid MPEG file
+    self.valid = 1
+
+  def _parse_xing(self, file):
+    """Parse the Xing-specific header.
+
+    For variable-bitrate (VBR) MPEG files, Xing includes a header which
+    can be used to approximate the (average) bitrate and the duration
+    of the file.
+    """
+    file.seek(0, 0)
+    header = file.read(128)
+
+    i = string.find(header, 'Xing')
+    if i > 0:
+      (flags,) = struct.unpack('>i', header[i+4:i+8])
+      if flags & 3:
+        # flags says "frames" and "bytes" are present. use them.
+        (frames,) = struct.unpack('>i', header[i+8:i+12])
+        (bytes,) = struct.unpack('>i', header[i+12:i+16])
+
+        if self.samplerate:
+          self.length = frames * samplesperframe / self.samplerate
+          self.bitrate = (bytes * 8.0 / self.length) / 1000
+
+  def _parse_id3(self, file):
+    "Parse the ID3 tag information from the file."
+
     try:
       file.seek(-128, 2)	# 128 bytes before the end of the file
     except IOError:
@@ -811,9 +866,6 @@ class MP3Info:
       else:
         self.genre = None
 
-    self.valid = 1
-
-    file.seek(0, 0)
 
 def strip_zero(s):
   l = len(s) - 1
@@ -903,15 +955,11 @@ if __name__ == '__main__':
 #   Allow merging of repositories into a single view.
 #
 # add a server admin address to the pages
-# add ACLs
 #
 # server-side playlist construction
 # persistent playlists (Todd Rowe <trowe@soleras.com>)
 # pass an MP3 (or playlist) off to a server-side player. allows remote
 #   control of an MP3 jukebox/player combo.
-#
-# from Ken Williams <kenw@rulespace.com>:
-#   double logging of requests (one for .mp3, one for .mp3.m3u)
 #
 # from "Daniel Carraher" <dcarrahe@biochem.umass.edu>:
 #   OGG Vorbis files? anything beyond the extension?

@@ -9,7 +9,7 @@
     <tr>
       <td>[users.ip]</td>
       <td>[users.time]</td>
-      <td>[users.fname]</td>
+      <td>[users.url]</td>
     </tr>
   [end]
   </table>
