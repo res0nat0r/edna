@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.21 2001/02/19 18:09:49 gstein Exp $
+#   $Id: edna.py,v 1.22 2001/02/19 18:52:39 gstein Exp $
 #
 
 import SocketServer
@@ -65,23 +65,12 @@ except ImportError:
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
   def __init__(self, fname):
-    self.userLog = [ ] # to track server usage
-    self.userIPs = { } # log unique IPs
-    config = ConfigParser.ConfigParser()
-    # set up some defaults for the web server.
-    config.add_section('server')
-    d = config.defaults()
-    d['port'] = '8080'
-    d['binding-hostname'] = ''
-    d['log'] = ''
-    # Process the config file.
-    self.config(fname, config)
-    self.port = config.getint('server', 'port')
+    prh = PseudoRequestHandler(fname)
+    self.port = prh.config.getint('server', 'port')
     SocketServer.TCPServer.__init__(
       self,
-      (config.get('server', 'binding-hostname'),
-       self.port),
-      RequestHandler)
+      (prh.config.get('server', 'binding-hostname'), self.port),
+      prh)
 
   def server_bind(self):
     # set SO_REUSEADDR (if available on this platform)
@@ -92,10 +81,27 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     ### build_url() uses server.server_name and server.server_port
     SocketServer.TCPServer.server_bind(self)
 
-  def config(self, fname, config):
+
+class PseudoRequestHandler:
+  "Hold configuration and runtime state, and spawn real request handlers."
+
+  def __init__(self, fname):
+    self.userLog = [ ] # to track server usage
+    self.userIPs = { } # log unique IPs
+
+    config = self.config = ConfigParser.ConfigParser()
+
+    config.add_section('server')
     config.add_section('sources')
+    config.add_section('acl')
+
+    # set up some defaults for the web server.
+    d = config.defaults()
+    d['port'] = '8080'
+    d['binding-hostname'] = ''
+    d['log'] = ''
+
     config.read(fname)
-    self.config = config
 
     self.dirs = [ ]
     dirs = [ ]
@@ -124,7 +130,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     self.acls = []
     try:
       allowed = re.split(r'[\s\n,]+', config.get('acl', 'allow'))
-    except ConfigParser.NoSectionError:
+    except ConfigParser.NoOptionError:
       allowed = []
     for addr in allowed:
       if '/' in addr:
@@ -135,7 +141,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       if not re.match(r'^\d+\.\d+\.\d+\.\d+$', addr):
         addr = socket.gethostbyname(addr)
       mask = ~((1 << (32-masklen)) - 1)
-      entry = (self._dot2int(addr), mask)
+      entry = (dot2int(addr), mask)
       if not entry in self.acls:
         self.acls.append(entry)
 
@@ -147,6 +153,9 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       self.css_text = string.strip(config.get('server', 'stylesheet-text'))
     except ConfigParser.NoOptionError:
       self.css_text = None
+
+  def __call__(self, request, client_address, server):
+    return EdnaRequestHandler(request, client_address, server, self)
 
   def log_user(self, ip, time, fname):
     if len(self.userLog) > 19:
@@ -189,12 +198,13 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         return 1
     return 0
 
-  def _dot2int(self, dotaddr):
-    a, b, c, d = map(int, string.split(dotaddr, '.'))
-    return (a << 24) + (b << 16) + (c << 8) + (d << 0)
 
+class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+  def __init__(self, request, client_address, server, system):
+    self.system = system
+    SocketServer.BaseRequestHandler.__init__(self, request, client_address,
+                                             server)
 
   def do_GET(self):
     try:
@@ -203,7 +213,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       pass
 
   def _perform_GET(self):
-    if not self.server.acl_ok(self.client_address[0]):
+    if not self.system.acl_ok(self.client_address[0]):
       self.send_error(403, 'Forbidden')
       return
     path = self.translate_path()
@@ -218,17 +228,17 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.output_style = 'xml'
 
     if not path:
-      subdirs = map(lambda x: (x[1], x[1]+'/'), self.server.dirs)
+      subdirs = map(lambda x: (x[1], x[1]+'/'), self.system.dirs)
       self.display_page(TITLE, subdirs, skiprec=1)
     elif path[0] == 'stats':
       # the site statistics were requested
       self.send_response(200)
       self.send_header("Content-Type", "text/html")
       self.end_headers()
-      self.wfile.write(self.server.print_users())
+      self.wfile.write(self.system.print_users())
       return
     else:
-      for d, name in self.server.dirs:
+      for d, name in self.system.dirs:
         if path[0] == name:
           curdir = d
           break
@@ -250,7 +260,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if string.lower(ext) == '.m3u':
           base, ext = os.path.splitext(base)
           if extensions.has_key(string.lower(ext)):
-            # something.mp3.m3u -- one of our psuedo-files
+            # something.mp3.m3u -- one of our pseudo-files
             pathname = os.path.join(curdir, base + ext)
 
         if not os.path.exists(pathname):
@@ -260,7 +270,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if os.path.isfile(pathname):
           # requested a file.
           ip, port = self.client_address
-          self.server.log_user(ip,
+          self.system.log_user(ip,
                                time.strftime("%B %d %I:%M:%S %p",
                                              time.localtime(time.time())),
                                pathname)
@@ -334,11 +344,11 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.wfile.write('<html><head><title>%s</title>' % cgi.escape(title))
 
     # stylesheet handling. do we have a URL or actual text?
-    if self.server.css_url:
+    if self.system.css_url:
       self.wfile.write('<link rel=stylesheet href="%s" type="text/css">\n'
-                       % self.server.css_url)
-    elif self.server.css_text:
-      self.wfile.write('<style>%s</style>\n' % self.server.css_text)
+                       % self.system.css_url)
+    elif self.system.css_text:
+      self.wfile.write('<style>%s</style>\n' % self.system.css_text)
 
     self.wfile.write('</head><body><h1>%s</h1>\n' % cgi.escape(title))
 
@@ -386,7 +396,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if title == 'Pictures':
           self.wfile.write('<img src="%s">\n' % href)
         elif title == 'Songs':
-          self.wfile.write('<li><a href="%s">%s</a></li>\n' % (href, text))
+          self.wfile.write('<li><a href="%s.m3u">%s</a></li>\n' % (href, text))
           #self.wfile.write('<li>%s&nbsp;[&nbsp;<a href="%s.m3u">Stream</a>&nbsp;|&nbsp;<a href="%s">Download</a>&nbsp;]</li>\n' % (text, href, href))
         else:
           self.wfile.write('<li><a href="%s">%s</a></li>\n' % (href, text))
@@ -504,7 +514,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         str = os.path.normpath(os.path.join(dir, str))
         if not os.path.exists(str): continue
         found = 0
-        for d, name in self.server.dirs:
+        for d, name in self.system.dirs:
           if string.lower(str[:len(d)]) == string.lower(d):
             str = name + str[len(d):]
             found = 1
@@ -606,7 +616,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.log_message('<unknown URL> %s', code)
 
   def log_message(self, format, *args):
-    log = self.server.config.get('server', 'log')
+    log = self.system.config.get('server', 'log')
     if not log:
       return
 
@@ -844,6 +854,10 @@ def sort_dir(d):
   l = filter(_usable_file, os.listdir(d))
   l.sort()
   return l
+
+def dot2int(self, dotaddr):
+  a, b, c, d = map(int, string.split(dotaddr, '.'))
+  return (a << 24) + (b << 16) + (c << 8) + (d << 0)
 
 # Extensions that WinAMP can handle: (and their MIME type if applicable)
 extensions = { 
