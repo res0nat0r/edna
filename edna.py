@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.3 2000/01/27 12:26:56 gstein Exp $
+#   $Id: edna.py,v 1.4 2000/01/27 12:55:25 gstein Exp $
 #
 
 import SocketServer
@@ -58,12 +58,17 @@ except ImportError:
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
   def server_bind(self):
+    # set SO_REUSEADDR (if available on this platform)
+    if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
+      self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
     # we don't need the server name/port, so skip BaseHTTPServer's work
     SocketServer.TCPServer.server_bind(self)
 
   def config(self, config):
     self.config = config
 
+    self.dirs = [ ]
     dirs = [ ]
     for option in config.options('sources'):
       if option[:3] == 'dir':
@@ -74,15 +79,18 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     for i in range(len(dirs)):
       dir = map(string.strip, string.split(dirs[i][1], '='))
       if not os.path.isdir(dir[0]):
-        print 'WARNING: skipping:', dir[0]
-        dirs[i] = None
+        print "WARNING: a source's directory must exist"
+        print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
         continue
       if len(dir) == 1:
         name = dir[0]
       else:
         name = dir[1]
-      dirs[i] = (dir[0], name)
-    self.dirs = filter(None, dirs)
+      if string.find(name, '/') != -1:
+        print "WARNING: a source's display name cannot contain '/'"
+        print "   skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name)
+        continue
+      self.dirs.append((dir[0], name))
 
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
