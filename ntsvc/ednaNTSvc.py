@@ -18,8 +18,12 @@ try:
   import edna
 except ImportError:
   import sys
+  try:
+    # in some cases, the above failure leaves a bad module around. torch it.
+    del sys.modules['edna']
+  except KeyError:
+    pass
   sys.path.append('..')
-  del sys.modules['edna']
   import edna
 
 class EdnaSvc(TCPServerService.TCPServerService,
