@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.7 2000/06/10 22:42:26 gstein Exp $
+#   $Id: edna.py,v 1.8 2000/09/02 08:01:04 gstein Exp $
 #
 
 import SocketServer
@@ -39,6 +39,7 @@ import socket
 import re
 import stat
 import whrandom
+import time
 
 error = __name__ + '.error'
 
@@ -57,6 +58,12 @@ except ImportError:
   mixin = SocketServer.ForkingMixIn
 
 class Server(mixin, BaseHTTPServer.HTTPServer):
+  def __init__(self, *args):
+    self.userLog = [ ] # to track server usage
+    self.userIPs = { } # log unique IPs
+
+    apply(SocketServer.TCPServer.__init__, (self,) + args)
+
   def server_bind(self):
     # set SO_REUSEADDR (if available on this platform)
     if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
@@ -92,6 +99,38 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         continue
       self.dirs.append((dir[0], name))
 
+  def log_user(self, ip, time, fname):
+    if len(self.userLog) > 19:
+      # delete the oldest entry
+      self.userLog.pop(0)
+
+    # append it to the queue
+    self.userLog.append((ip, time, fname))
+
+    if ip not in self.userIPs.keys():
+      # add the entry for the first time
+      self.userIPs[ip] = (1, time)
+    else: 
+      # increment the count and add the most recent time
+      count, oldTime = self.userIPs[ip]
+      self.userIPs[ip] = (count + 1, time)
+
+  def print_users(self):
+    string = '<h2>Site Statistics</h2>\n<table border=\"1\">\n'
+    for x in range(len(self.userLog)):
+      ip, time, fname = self.userLog[-x-1]
+      string = string + '<tr><td>'+ ip + '</td><td>' + time + '</td><td>' \
+               + fname + "</td></tr>\n"
+    string = string + '</tr></table>\n'
+    string = string + '<h3>Unique IPs</h3>\n<table border=\"1\">\n'
+    for x in self.userIPs.keys():
+      count, time = self.userIPs[x]
+      string = string + '<tr><td>' + x + '</td><td>' \
+               + ("%d songs downloaded" % count) + '</td><td>' + time \
+               + "</td></tr>\n"
+    string = string + '</tr></table>\n'
+    return string
+
 
 class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -110,6 +149,13 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if not path:
       subdirs = map(lambda x: (x[1], x[1]+'/'), self.server.dirs)
       self.display_page('select music', subdirs, skiprec=1)
+    elif path[0] == 'stats':
+      # the site statistics were requested
+      self.send_response(200)
+      self.send_header("Content-Type", "text/html")
+      self.end_headers()
+      self.wfile.write(self.server.print_users())
+      return
     else:
       for d, name in self.server.dirs:
         if path[0] == name:
@@ -139,6 +185,11 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.send_error(404)
           return
         if os.path.isfile(pathname):
+          ip, port = self.client_address
+          self.server.log_user(ip,
+                               time.strftime("%B %d %I:%M:%S %p",
+                                             time.localtime(time.time())),
+                               pathname)
           self.serve_file(p, pathname, url)
           return
         curdir = pathname
@@ -194,6 +245,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if not subdirs and not songs and not playlists:
       self.wfile.write('<i>Empty directory</i>\n')
 
+    self.wfile.write('<p><a href="/stats/">Server statistics</a></p>')
     self.wfile.write('</body></html>\n')
 
   def display_list(self, title, list, skipall=0):
