@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.58 2002/11/10 05:50:09 jerenk Exp $
+#   $Id: edna.py,v 1.59 2003/02/08 19:17:50 kgk Exp $
 #
 
 __version__ = '0.4'
@@ -45,7 +45,11 @@ import time
 import struct
 import ezt
 import MP3Info
-import signal
+try:
+  import signal
+  signalSupport = 'yes'
+except ImportError:
+  signalSupport = 'no'
 
 try:
   import ogg.vorbis
@@ -916,8 +920,9 @@ def sigterm_handler(signum, frame):
 def run_server(fname):
   global running, config_needed, oggSupport
 
-  signal.signal(signal.SIGHUP, sighup_handler)
-  signal.signal(signal.SIGTERM, sigterm_handler)
+  if signalSupport == 'yes':
+    signal.signal(signal.SIGHUP, sighup_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
 
   svr = Server(fname)
   if oggSupport == 'yes':
