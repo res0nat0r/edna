@@ -1,7 +1,9 @@
-edna 0.1 -- an MP3 server
+edna -- an MP3 server
 
 Please see http://www.lyra.org/greg/edna/ for all installation and
 usage instructions.
+
+(briefly: edit edna.conf as necessary, then run edna.py)
 
 
 Greg Stein, http://www.lyra.org/
