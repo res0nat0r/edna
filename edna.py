@@ -23,7 +23,7 @@
 #    http://www.lyra.org/greg/edna/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.36 2001/02/21 10:59:25 gstein Exp $
+#   $Id: edna.py,v 1.37 2001/02/21 12:31:25 gstein Exp $
 #
 
 __version__ = '0.4'
@@ -52,7 +52,7 @@ except ImportError:
 
 error = __name__ + '.error'
 
-TITLE = 'edna: Streaming MP3 Server'
+TITLE = 'Streaming MP3 Server'
 
 # a pattern used to trim leading digits, spaces, and dashes from a song
 ### would be nice to get a bit fancier with the possible trimming
@@ -217,6 +217,10 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # the site statistics were requested
       self.display_stats()
     else:
+      if path:
+        title = cgi.escape(path[-1])
+      else:
+        title = TITLE
       if len(self.server.dirs) == 1:
         url = '/'
         curdir = self.server.dirs[0][0]
@@ -324,7 +328,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             subdirs.append(_datablob(href=href + '/', is_new=is_new,
                                      text=cgi.escape(name)))
 
-      self.display_page(TITLE, subdirs, pictures, songs, playlists)
+      self.display_page(title, subdirs, pictures, songs, playlists)
 
   def display_stats(self):
     self.send_response(200)
@@ -385,19 +389,24 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     template.generate(self.wfile, data)
 
   def tree_position(self):
-    ### fix: if current position is HOME, then return nothing...
-
-    treepos = '<p><a href="' + self.build_url('','') + '">HOME</a>\n'
     mypath = self.translate_path()
+    if not mypath:
+      return ''
+
+    url = self.build_url('')[:-1]  # lose the trailing slash
+
+    links = [ '<a href="%s/">HOME</a>\n' % url ]
+
     last = len(mypath)
-    position = ''
     for count in range(last):
-      position = position + '/' + mypath[count]
-      if count + 1 < last:
-        treepos = treepos + '<b> / </b><a href="' + self.build_url(urllib.quote(position),'') + '">' + mypath[count] + '</a>\n'
+      url = url + '/' + urllib.quote(mypath[count])
+      text = cgi.escape(mypath[count])
+      if count == last - 1:
+        links.append('<b> : %s</b>' % text)
       else:
-        treepos = treepos + '<b> : </b><b>' + mypath[count] + '</b>\n'
-    return treepos + '</p>'
+        links.append('<b> / </b><a href="%s/">%s</a>' % (url, text))
+
+    return '<p>' + string.join(links, '\n') + '</p>'
 
   def make_list(self, fullpath, url, recursive, shuffle, songs=None):
     # This routine takes a string for 'fullpath' and 'url', a list for
@@ -907,7 +916,7 @@ extensions = {
 # Extensions of images: (and their MIME type)
 picture_extensions = { 
   '.gif' : 'image/gif',
-  '.jpe' : 'image/jpeg',
+  '.jpeg' : 'image/jpeg',
   '.jpg' : 'image/jpeg',
   '.png' : 'image/png',
   }
@@ -960,4 +969,6 @@ if __name__ == '__main__':
 # community building (Pétur Rúnar Guðnason <prg@margmidlun.is>)
 #    - most popular songs / directories
 #    - comments on songs / directories
+#
+# provide a mechanism for serving misc. files (e.g CSS files)
 #
