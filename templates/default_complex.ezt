@@ -8,14 +8,15 @@
            margin-left: 2em }
 --></style>
 </head><body link="#444488" alink="#884444" vlink="#444488">
-<table width="100%" bgcolor="#bbbbff" cellpadding=2><tr>
+<table width="100%" bgcolor="#bbbbff" cellpadding=2>
+<tbody><tr>
   <td><font size="+2">
 [if-any links]
   [links]
 [else]
   <strong>edna: [title]</strong>
 [end]
-</font></td></tr></table>
+</font></td></tr></tbody></table>
 
 [if-any pictures]
   [for pictures]
@@ -43,7 +44,6 @@
   </td></tr></table></td></tr></table>
   </p>
 [end]
-
 [if-any songs]
   <p>
   <table border=0 cellpadding=0 cellspacing=2 width="100%" bgcolor="#ff0000">
@@ -51,43 +51,43 @@
   <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
   <tr bgcolor="#d1d5d7"><th>Songs</th></tr>
   <tr><td>
-  <table border=1 width="100%" cellpadding=2>
-    <tr align="center" cellpadding=0 cellspacing=0 style="font-weight:bold;font-size:75%;">
-      <td>Filename</td>
-      <td>Disc</td>
-      <td>Track</td>
-      <td>Title</td>
-      <td>Artist</td>
-      <td>Composer</td>
-      <td>Album</td>
-      <td>Year</td>
-      <td>Genre</td>
-      <td>Length</td>
-      <td>Size</td>
-      <td>Bitrate</td>
-      <td>Samplerate</td>
-      <td>Mode</td>
-      <td>Mode Ext.</td>
-      <!-- <td>Newness</td> -->
-    </tr>
+<table border=1 width="100%" cellpadding=2>
+  <tr align="center" cellpadding=0 cellspacing=0 style="font-weight:bold;font-size:75%;">
+   <td>Filename</td>
+   <td>Disc</td>
+ <td>Track</td>
+ <td>Title</td>
+ <td>Artist</td>
+ <td>Composer</td>
+ <td>Album</td>
+ <td>Year</td>
+ <td>Genre</td>
+ <td>Length</td>
+ <td>Size</td>
+ <td>Bitrate</td>
+ <td>Samplerate</td>
+ <td>Mode</td>
+ <td>Mode Ext.</td>
+ <!-- <td>Newness</td> -->
+ </tr>
   
   [for songs]
-    <tr align="right" style="font-size:75%;font-family:sans-serif;">
-      <td align="left"><a href="[songs.href].m3u">[songs.text]</td>
-      <td>[songs.info.disc]</td>
-      <td>[songs.info.track]&nbsp;</td>
-      <td align="left">[songs.info.title]&nbsp;</td>
-      <td align="left">[songs.info.artist]&nbsp;</td>
-      <td align="left">[songs.info.composer]&nbsp;</td>
-      <td align="left">[songs.info.album]</td>
-      <td>[songs.info.year]&nbsp;</td>
-      <td align="left">[songs.info.genre]</td>
-      <td>[songs.info.duration] </td>
-      <td>[songs.info.filesize] MB</td>
-      <td>[songs.info.bitrate] kbps</td>
-      <td>[songs.info.samplerate] kHz&nbsp;</td>
-      <td align="center">[songs.info.mode]</td>
-      <td align="center">[songs.info.mode_extension]</td>
+ <tr align="right" style="font-size:75%;font-family:sans-serif;">
+ <td align="left"><a href="[songs.href].m3u">[songs.text]</td>
+ <td>[songs.info.disc]</td>
+ <td>[songs.info.track]&nbsp;</td>
+ <td align="left">[songs.info.title]&nbsp;</td>
+ <td align="left">[songs.info.artist]&nbsp;</td>
+ <td align="left">[songs.info.composer]&nbsp;</td>
+ <td align="left">[songs.info.album]</td>
+ <td>[songs.info.year]&nbsp;</td>
+ <td align="left">[songs.info.genre]</td>
+ <td>[songs.info.duration] </td>
+ <td>[songs.info.filesize] MB</td>
+ <td>[songs.info.bitrate] kbps</td>
+ <td>[songs.info.samplerate] kHz&nbsp;</td>
+ <td align="center">[songs.info.mode]</td>
+ <td align="center">[songs.info.mode_extension]</td>
       <!-- <td>[songs.is_new]</a>&nbsp;</td> -->
     </tr>
   [end]
@@ -111,7 +111,7 @@
     <li><a href="[playlists.href]">[playlists.text]</a>[playlists.is_new]</li>
   [end]
   </ul>
-  </td></tr></table></td></tr></table>
+  </td></tr></table></td><!/tr></table>
   </p>
 [end]
 

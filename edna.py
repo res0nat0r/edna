@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.60 2003/02/08 20:14:34 kgk Exp $
+#   $Id: edna.py,v 1.61 2003/04/20 00:08:40 kgk Exp $
 #
 
 __version__ = '0.4'
@@ -946,7 +946,7 @@ def run_server(fname):
     sys.exit(0)
   except KeyboardInterrupt:
     print "\nCaught ctr-c, taking down the server"
-    print "Please wait while the remaining streams finnish.."
+    print "Please wait while the remaining streams finish.."
     sys.exit(0)
 
 def usage():
