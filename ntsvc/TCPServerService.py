@@ -1,7 +1,6 @@
 import win32serviceutil
 from win32event import *
 from win32file import *
-import ConfigParser
 import SocketServer
 import socket
 import win32service
