@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.63 2006/01/28 01:47:40 syrk Exp $
+#   $Id: edna.py,v 1.64 2006/01/28 01:51:49 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -1045,7 +1045,7 @@ if __name__ == '__main__':
   for a in sys.argv[1:]:
     if a == "--daemon":
       daemon_mode=1
-    elif a == "--help" or string.find(a, '--')==0:
+    elif a == "--help" or a == "-h" or string.find(a, '--')==0:
       usage()
     else:
       fname = a
