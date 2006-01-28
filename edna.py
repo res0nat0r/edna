@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.65 2006/01/28 01:55:37 syrk Exp $
+#   $Id: edna.py,v 1.66 2006/01/28 02:03:10 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -115,6 +115,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d['auth_level'] = '1'
     d['debug_level'] = '0'
     d['fileinfo'] = '0'
+    d['hide_names'] = ""
+    d['hide_matching'] = ""
 
     config.read(fname)
 
@@ -139,6 +141,10 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     debug_level = config.getint('extra', 'debug_level')
     global DAYS_NEW
     DAYS_NEW = config.getint('extra', 'days_new')
+    global HIDE_EXACT
+    HIDE_EXACT = filter(None, [toHide.strip().lower() for toHide in config.get('extra', 'hide_names').split(',')])
+    global HIDE_MATCH
+    HIDE_MATCH = filter(None, [toHide.strip().lower() for toHide in config.get('extra', 'hide_matching').split(',')])
 
     if debug_level == 1:
       self.log_message('Running in debug mode')
@@ -429,7 +435,23 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
       for name in sort_dir(curdir):
         href = urllib.quote(name)
-        is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_MTIME])
+	try:
+        	is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_MTIME])
+	except: 
+		print "Failed to stat %s"%(name) # For example, in the case of disk I/O errors
+		continue
+	nameLower = name.lower()
+	if nameLower in HIDE_NAMES: continue
+	skip = False
+	for toRemove in HIDE_MATCH:
+		if toRemove in nameLower: 
+			print "Manually removing %s"%(name)
+			skip = True # I can't find a way to "continue" up two levels with one call . . .
+			continue
+	if skip:
+		continue
+
+        base, ext = os.path.splitext(name)
 
         base, ext = os.path.splitext(name)
         ext = string.lower(ext)
