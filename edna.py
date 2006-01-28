@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.62 2003/04/22 15:04:27 kgk Exp $
+#   $Id: edna.py,v 1.63 2006/01/28 01:47:40 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -45,6 +45,8 @@ import time
 import struct
 import ezt
 import MP3Info
+import md5
+  
 try:
   import signal
   signalSupport = 'yes'
@@ -62,6 +64,11 @@ try:
   StringIO = cStringIO
 except ImportError:
   import StringIO
+
+try:
+  import sha
+except ImportError:
+  pass
 
 error = __name__ + '.error'
 
@@ -190,6 +197,24 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     try:
       auth_pairs = re.split(r'[\s\n,]+', config.get('acl', 'auth'))
       self.auth_table = {}
+      
+      try:
+        self.password_hash = config.get('acl','password_hash')
+        
+        if not globals().has_key(self.password_hash):
+          self.log_message("WARNING: there is no hash module '%s' for passwords" % \
+                                                                  self.password_hash)
+          self.password_hash = None
+        else:
+          self.debug_message("passwords authenticated using %s hexdigest" % \
+                                                                  self.password_hash)
+          
+      except ConfigParser.NoOptionError:
+        self.password_hash = None
+        
+      if self.password_hash is None:
+        self.debug_message("passwords authenticated in plain text")
+        
       for pair in auth_pairs:
         user,passw = string.split(pair,':')
         self.auth_table[user] = passw
@@ -269,15 +294,29 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     auth = self.headers.getheader('Authorization')
     this_user, this_pass = None, None
     if auth:
+      def transl(passwd):
+        hash = globals()[self.server.password_hash]
+        return hash.new(passwd).hexdigest()
+        
+      if not self.server.password_hash:
+        transl = str # i.e. no translation
+        
       if string.lower(auth[:6]) == 'basic ':
         import base64
         [name,password] = string.split(
           base64.decodestring(string.split(auth)[-1]), ':')
         this_user, this_pass = name, password
-
+      
+      this_pass = transl(this_pass)
       if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
-        self.server.debug_message('--- Authenticated --- User: ' + this_user + ' Password: ' + this_pass)
+        self.server.debug_message('--- Authenticated --- User: %s Password: %s' % \
+                                                        (this_user, this_pass))
         return 1
+      else:
+        self.server.debug_message('--- Auth FAILED --- User: %s Password: %s' % \
+                                                        (this_user, this_pass))
+        if not auth_table.has_key(this_user):
+          self.server.debug_message('--- User does not exist --- %s' % this_user)
     else:
       realm='edna'
       self.send_response(401)
