@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.64 2006/01/28 01:51:49 syrk Exp $
+#   $Id: edna.py,v 1.65 2006/01/28 01:55:37 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -1058,34 +1058,3 @@ if __name__ == '__main__':
     daemonize('/dev/null', '/var/log/edna.log', '/var/log/edna.log', '/var/run/edna.pid')
 
   run_server(fname)
-
-
-##########################################################################
-#
-# TODO
-#
-# add a server admin address to the pages
-#
-# server-side playlist construction
-# persistent playlists (Todd Rowe <trowe@soleras.com>)
-# per-user, persistent playlists (Pétur Rúnar Guðnason <prg@margmidlun.is>)
-#   e.g. log in and pick up your playlists
-#
-# pass an MP3 (or playlist) off to a server-side player. allows remote
-#   control of an MP3 jukebox/player combo.
-#
-# add MP3 info into the style-xml.ezt template
-#          for key, val in vars(text).items():
-#            if key != "valid" and val != None:
-#              self.wfile.write('<%s>%s</%s>'
-#                               % (cgi.escape(key), cgi.escape('%s' % (val)),
-#                                  cgi.escape(key)))
-#
-# community building (Pétur Rúnar Guðnason <prg@margmidlun.is>)
-#    - most popular songs / directories
-#    - comments on songs / directories
-#
-# provide a mechanism for serving misc. files (e.g CSS files)
-#
-#
-#
