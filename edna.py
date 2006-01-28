@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.68 2006/01/28 02:35:18 syrk Exp $
+#   $Id: edna.py,v 1.69 2006/01/28 02:36:39 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -450,7 +450,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           print "Failed to stat %s"%(name)
           continue
         nameLower = name.lower()
-        if nameLower in HIDE_NAMES: continue
+        if nameLower in HIDE_EXACT: continue
         skip = False
         for toHide in HIDE_MATCH:
           if toHide in nameLower: 
