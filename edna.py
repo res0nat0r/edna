@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.66 2006/01/28 02:03:10 syrk Exp $
+#   $Id: edna.py,v 1.67 2006/01/28 02:16:56 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -107,6 +107,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     # set up some defaults for the web server.
     d = config.defaults()
     d['port'] = '8080'
+    d['robots'] = '1'
     d['binding-hostname'] = ''
     d['name_prefix'] = ''
     d['log'] = ''
@@ -346,6 +347,13 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     path = self.translate_path()
     if path is None:
       self.send_error(400, 'Illegal URL construction')
+      return
+
+    if path == ["robots.txt"] and self.server.config.getint('server', 'robots') != 0:
+      self.send_response(200)
+      self.send_header("Content-Type", "text/plain")
+      self.end_headers()
+      self.wfile.write("User-agent: *\nDisallow /\n")
       return
 
     self.output_style = 'html'
