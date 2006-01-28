@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.67 2006/01/28 02:16:56 syrk Exp $
+#   $Id: edna.py,v 1.68 2006/01/28 02:35:18 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -443,21 +443,23 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
       for name in sort_dir(curdir):
         href = urllib.quote(name)
-	try:
-        	is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_MTIME])
-	except: 
-		print "Failed to stat %s"%(name) # For example, in the case of disk I/O errors
-		continue
-	nameLower = name.lower()
-	if nameLower in HIDE_NAMES: continue
-	skip = False
-	for toRemove in HIDE_MATCH:
-		if toRemove in nameLower: 
-			print "Manually removing %s"%(name)
-			skip = True # I can't find a way to "continue" up two levels with one call . . .
-			continue
-	if skip:
-		continue
+        try:
+          is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_MTIME])
+        except: 
+          # For example, in the case of disk I/O errors
+          print "Failed to stat %s"%(name)
+          continue
+        nameLower = name.lower()
+        if nameLower in HIDE_NAMES: continue
+        skip = False
+        for toHide in HIDE_MATCH:
+          if toHide in nameLower: 
+            self.server.debug_message("Hiding %s"%(name))
+            # I can't find a way to "continue" up two levels with one call...
+            skip = True
+            continue
+          if skip:
+            continue
 
         base, ext = os.path.splitext(name)
 
