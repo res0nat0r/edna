@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.71 2006/01/31 15:54:50 syrk Exp $
+#   $Id: edna.py,v 1.72 2006/01/31 19:08:13 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -974,6 +974,8 @@ extensions = {
   '.asx' : 'video/x-ms-asf',
   '.mpg' : 'video/mpeg',
   '.ogg' : 'application/x-ogg',
+  '.m4a' : 'audio/mp4',
+  '.mp4' : 'video/mp4',  
   }
 
 # Extensions of images: (and their MIME type)
