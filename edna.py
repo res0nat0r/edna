@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.69 2006/01/28 02:36:39 syrk Exp $
+#   $Id: edna.py,v 1.70 2006/01/31 15:05:26 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -638,6 +638,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     output = [ ]
     for line in f.readlines():
       line = string.strip(line)
+      if line[:7] == '#EXTM3U' or line[:8] == '#EXTINF:':
+        output.append(line)
+        continue
       if line[:5] == 'http:' or line[:4] == 'ftp:':
         output.append(line)
         continue
