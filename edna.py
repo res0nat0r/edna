@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.72 2006/01/31 19:08:13 syrk Exp $
+#   $Id: edna.py,v 1.73 2006/02/02 01:43:49 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -325,20 +325,21 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if not auth_table.has_key(this_user):
         self.server.debug_message('--- User does not exist --- %s' % this_user)
 
-      realm='edna'
-      self.send_response(401)
-      self.send_header('WWW-Authenticate', 'Basic realm="%s"' % realm)
-      self.send_header('Content-Type', 'text/html;');
-      self.send_header('Connection', 'close');
-      self.end_headers()
-      try:
-        short, long = self.responses[401]
-      except KeyError:
-        short, long = '???', '???'
+    realm='edna'
+    self.send_response(401)
+    self.send_header('WWW-Authenticate', 'Basic realm="%s"' % realm)
+    self.send_header('Content-Type', 'text/html;');
+    self.send_header('Connection', 'close');
+    self.end_headers()
+    try:
+      short, long = self.responses[401]
+    except KeyError:
+      short, long = '???', '???'
       self.wfile.write(self.error_message_format %
                        {'code': 401, 'message': short, 'explain': long})
-      return 0
-
+      
+    return 0
+    
   def _perform_GET(self):
 
     ## verify the IP
