@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.73 2006/02/02 01:43:49 syrk Exp $
+#   $Id: edna.py,v 1.74 2006/02/02 01:45:07 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -335,8 +335,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       short, long = self.responses[401]
     except KeyError:
       short, long = '???', '???'
-      self.wfile.write(self.error_message_format %
-                       {'code': 401, 'message': short, 'explain': long})
+
+    self.wfile.write(self.error_message_format %
+                     {'code': 401, 'message': short, 'explain': long})
       
     return 0
     
