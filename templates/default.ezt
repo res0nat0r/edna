@@ -32,7 +32,7 @@
   <tr><td>
   <ul>
   [for subdirs]
-    <li><a href="[subdirs.href]">[subdirs.text]</a>[subdirs.is_new]</li>
+    <li>[[]<a href="[subdirs.href]allrecursive.m3u">Play</a>] <a href="[subdirs.href]">[subdirs.text]</a>[subdirs.is_new]</li>
   [end]
   </ul>
   [if-any display-recursive]
