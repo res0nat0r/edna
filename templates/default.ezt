@@ -56,7 +56,7 @@
     <li><a href="[songs.href].m3u">[songs.text]</a>[songs.is_new]</li>
   [end]
   </ul>
-  &nbsp;&nbsp;<a href="all.m3u"><em>Play all songs</em></a>
+  &nbsp;&nbsp;<a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
   <br>
   &nbsp;&nbsp;<a href="shuffle.m3u"><em>Shuffle all songs</em></a>
   </td></tr></table></td></tr></table>

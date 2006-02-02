@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.74 2006/02/02 01:45:07 syrk Exp $
+#   $Id: edna.py,v 1.75 2006/02/02 23:36:24 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -43,10 +43,11 @@ import stat
 import random
 import time
 import struct
+import zipfile
 import ezt
 import MP3Info
 import md5
-  
+
 try:
   import signal
   signalSupport = 'yes'
@@ -118,6 +119,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d['fileinfo'] = '0'
     d['hide_names'] = ""
     d['hide_matching'] = ""
+    d['zip'] = '0'
 
     config.read(fname)
 
@@ -137,6 +139,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     template_file = config.get('server', 'template')
     template_path = os.path.join(os.path.dirname(fname), template_path)
     self.fileinfo = config.getint('server', 'fileinfo')
+    self.zipmax = config.getint('server', 'zip') * 1024 * 1024
+    self.zipsize = 0
 
     global debug_level
     debug_level = config.getint('extra', 'debug_level')
@@ -402,7 +406,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
       for p in path:
         if p == 'all.m3u' or p == 'allrecursive.m3u' or \
-           p == 'shuffle.m3u' or p == 'shufflerecursive.m3u':
+           p == 'shuffle.m3u' or p == 'shufflerecursive.m3u' or \
+           p == 'all.zip':
           # serve up a pseudo-file
           self.serve_file(p, curdir, url)
           return
@@ -612,10 +617,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       songs = []
 
     for name in sort_dir(fullpath):
-      base, ext = os.path.splitext(name)
-      if extensions.has_key(string.lower(ext)):
-        # add the song's URL to the list we're building
-        songs.append(self.build_url(url, name) + '\n')
+      if url:
+        base, ext = os.path.splitext(name)
+        if extensions.has_key(string.lower(ext)):
+          # add the song's URL to the list we're building
+          songs.append(self.build_url(url, name) + '\n')
+      else:
+        if os.path.isfile(fullpath + '/' + name):
+          songs.append(name)
 
       # recurse down into subdirectories looking for more MP3s.
       if recursive and os.path.isdir(fullpath + '/' + name):
@@ -680,10 +689,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       type = any_extensions[ext]
       f = open(fullpath, 'rb')
       clen = os.fstat(f.fileno())[stat.ST_SIZE]
-    elif ext != '.m3u':
-      self.send_error(404)
-      return
-    else:
+    elif ext == '.m3u':
       type = 'audio/x-mpegurl'
       if name == 'all.m3u' or name == 'allrecursive.m3u' or \
          name == 'shuffle.m3u' or name == 'shufflerecursive.m3u':
@@ -703,6 +709,34 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
           f = self.open_playlist(fullpath, url)
           clen = len(f.getvalue())
+    elif name == 'all.zip':
+      if not self.server.zipmax > 0:
+        self.send_error(403, 'The ZIP service has been disabled by the server administrator.')
+        return
+
+      type = 'application/zip'
+      f = StringIO.StringIO()
+      z = zipfile.ZipFile(f, 'w', zipfile.ZIP_STORED)
+      songs = self.make_list(fullpath, None, None, None)
+      for s in songs:
+        z.write(fullpath + '/' + s, os.path.basename(fullpath) + '/' + s)
+        if self.server.zipsize + len(f.getvalue()) > self.server.zipmax:
+          break
+
+      z.close()
+      f.seek(0)
+      clen = len(f.getvalue())
+      self.server.debug_message("ZUP thresholds: %d + %d vs %d" %
+                                (self.server.zipsize, clen, self.server.zipmax))
+
+      if self.server.zipsize + clen > self.server.zipmax:
+        self.send_error(503, 'The <b>ZIP</b> service is currently under heavy load.  Please try again later.')
+        return
+
+      self.server.zipsize += clen
+    else:
+      self.send_error(404)
+      return
 
     self.send_response(200)
     self.send_header("Content-Type", type)
@@ -730,6 +764,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       except socket.error:
         # it was probably closed on the other end
         break
+
+    if type == 'application/zip':
+      self.server.zipsize -= clen
 
   def build_url(self, url, file=''):
     host = self.server.name_prefix or self.headers.getheader('host') or self.server.server_name
