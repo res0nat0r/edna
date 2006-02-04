@@ -111,7 +111,7 @@
     <li><a href="[playlists.href]">[playlists.text]</a>[playlists.is_new]</li>
   [end]
   </ul>
-  </td></tr></table></td><!/tr></table>
+  </td></tr></table></td></tr></table>
   </p>
 [end]
 
