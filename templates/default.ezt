@@ -36,9 +36,9 @@
   [end]
   </ul>
   [if-any display-recursive]
-    &nbsp;&nbsp;<a href="allrecursive.m3u"><em>Play all songs (recursively)</em></a>
+    <a href="allrecursive.m3u"><em>Play all songs (recursively)</em></a>
     <br>
-    &nbsp;&nbsp;<a href="shufflerecursive.m3u"><em>Shuffle all songs (recursively)</em></a>
+    <a href="shufflerecursive.m3u"><em>Shuffle all songs (recursively)</em></a>
   [end]
   </td></tr></table></td></tr></table>
   </p>
@@ -56,9 +56,9 @@
     <li><a href="[songs.href].m3u">[songs.text]</a>[songs.is_new]</li>
   [end]
   </ul>
-  &nbsp;&nbsp;<a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
+  <a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
   <br>
-  &nbsp;&nbsp;<a href="shuffle.m3u"><em>Shuffle all songs</em></a>
+  <a href="shuffle.m3u"><em>Shuffle all songs</em></a>
   </td></tr></table></td></tr></table>
   </p>
 [end]

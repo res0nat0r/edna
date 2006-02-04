@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.76 2006/02/04 01:25:13 syrk Exp $
+#   $Id: edna.py,v 1.77 2006/02/04 01:46:52 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -887,8 +887,8 @@ class FileInfo:
       self.__dict__.update(info.__dict__)
       self.total_time = info.mpeg.total_time;
       self.filesize = info.mpeg.filesize2
-      self.bitrate = info.mpeg.bitrate
-      self.samplerate = info.mpeg.samplerate
+      self.bitrate = int(info.mpeg.bitrate)
+      self.samplerate = info.mpeg.samplerate/1000
       self.mode = info.mpeg.mode
       self.mode_extension = info.mpeg.mode_extension
 

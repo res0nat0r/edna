@@ -75,26 +75,26 @@
  <tr align="right" style="font-size:75%;font-family:sans-serif;">
  <td align="left"><a href="[songs.href].m3u">[songs.text]</td>
  <td>[songs.info.disc]</td>
- <td>[songs.info.track]&nbsp;</td>
- <td align="left">[songs.info.title]&nbsp;</td>
- <td align="left">[songs.info.artist]&nbsp;</td>
- <td align="left">[songs.info.composer]&nbsp;</td>
+ <td>[songs.info.track]</td>
+ <td align="left">[songs.info.title]</td>
+ <td align="left">[songs.info.artist]</td>
+ <td align="left">[songs.info.composer]</td>
  <td align="left">[songs.info.album]</td>
- <td>[songs.info.year]&nbsp;</td>
+ <td>[songs.info.year]</td>
  <td align="left">[songs.info.genre]</td>
  <td>[songs.info.duration] </td>
  <td>[songs.info.filesize] MB</td>
  <td>[songs.info.bitrate] kbps</td>
- <td>[songs.info.samplerate] kHz&nbsp;</td>
+ <td>[songs.info.samplerate] kHz</td>
  <td align="center">[songs.info.mode]</td>
  <td align="center">[songs.info.mode_extension]</td>
-      <!-- <td>[songs.is_new]</a>&nbsp;</td> -->
+      <!-- <td>[songs.is_new]</a></td> -->
     </tr>
   [end]
   </table>
-  &nbsp;&nbsp;<a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
+  <a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
   <br>
-  &nbsp;&nbsp;<a href="shuffle.m3u"><em>Shuffle all songs</em></a>
+  <a href="shuffle.m3u"><em>Shuffle all songs</em></a>
   </td></tr></table></td></tr></table>
   </p>
 [end]
