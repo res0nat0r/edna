@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.77 2006/02/04 01:46:52 syrk Exp $
+#   $Id: edna.py,v 1.78 2006/02/04 02:21:04 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -41,6 +41,7 @@ import socket
 import re
 import stat
 import random
+import datetime
 import time
 import struct
 import zipfile
@@ -671,6 +672,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   def serve_file(self, name, fullpath, url, range=None):
     base, ext = os.path.splitext(name)
     ext = string.lower(ext)
+    mtime = None
     if any_extensions.has_key(ext):
       if not picture_extensions.has_key(ext):
         # log the request of this file
@@ -680,7 +682,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # get the file and info for delivery
       type = any_extensions[ext]
       f = open(fullpath, 'rb')
-      clen = os.fstat(f.fileno())[stat.ST_SIZE]
+      st = os.fstat(f.fileno())
+      clen = st.st_size
+      mtime = st.st_mtime
     elif ext == '.m3u':
       type = 'audio/x-mpegurl'
       if name == 'all.m3u' or name == 'allrecursive.m3u' or \
@@ -701,6 +705,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
           f = self.open_playlist(fullpath, url)
           clen = len(f.getvalue())
+          mtime = os.stat(fullpath)[stat.ST_MTIME]
     elif name == 'all.zip':
       if not self.server.zipmax > 0:
         self.send_error(403, 'The ZIP service has been disabled by the server administrator.')
@@ -733,6 +738,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_response(200)
     self.send_header("Content-Type", type)
     self.send_header("Content-Length", clen)
+    if mtime:
+      self.send_header('Last-Modified', datetime.datetime.fromtimestamp(mtime).strftime("%a, %d %b %Y %T GMT"))
     # Thanks to Stefan Alfredsson <stefan@alfredsson.org>
     # for the suggestion, Now the filenames get displayed right.
     self.send_header("icy-name", base)
