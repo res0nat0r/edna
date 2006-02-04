@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.75 2006/02/02 23:36:24 syrk Exp $
+#   $Id: edna.py,v 1.76 2006/02/04 01:25:13 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -646,14 +646,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     dirpath = os.path.dirname(fullpath)
     f = open(fullpath)
 
-    # if the first line has 'http:' or 'ftp:', then we'll assume all lines
-    # are absolute and just return the open file.
-    check = f.read(5)
-    f.seek(0, 0)
-    if check == 'http:' or check[:4] == 'ftp:':
-      return f
-
-    # they're relative file names. fix them up.
     output = [ ]
     for line in f.readlines():
       line = string.strip(line)
