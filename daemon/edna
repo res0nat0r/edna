@@ -20,7 +20,7 @@ EDNAD=/usr/bin/ednad
 initdir=/etc/init.d
 pidfile=/var/run/ednad.pid
 
-
+PYTHON=`which python`
 PYTHONPATH=/usr/lib/edna
 export PYTHONPATH
 #
@@ -31,6 +31,8 @@ if [ -f /etc/debian_version ]; then
     system=debian
 elif [ -f /etc/redhat-release ]; then
     system=redhat
+elif [ -f /etc/SuSE-release ]; then
+    system=suse
 else
     echo "$0: Unknown system, please port" 1>&2
     exit 1
@@ -40,11 +42,42 @@ if [ $system = redhat ]; then
     . $initdir/functions
 fi
 
+if [ $system = suse ]; then
+    . /etc/rc.status
+fi
 
 [ -f $EDNA ] || exit 0
 
 
 RETVAL=0
+
+function suse () {
+    case "$1" in
+    start)
+        echo -n "Starting edna: "
+        startproc -p $PIDFILE $PYTHON $EDNA $EDNACONF >/dev/null 2>&1
+        rc_status -v
+        ;;
+    stop)
+        echo -n "Shutting down edna: "
+	killproc -p $PIDFILE $PYTHON $EDNA $EDNACONF >/dev/null 2>&1
+        rc_status -v
+        ;;
+    status)
+        echo -n "Checking for service edna: "
+        checkproc -p $PIDFILE $PYTHON $EDNA $EDNACONF
+        rc_status -v
+        ;;
+    restart)
+        $0 stop
+        $0 start
+        rc_status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|status|restart}"
+        exit 1
+    esac
+}
 
 function redhat () {
     case "$1" in
@@ -117,6 +150,8 @@ if [ $system = debian ]; then
 	debian "$@"
 elif [ $system = redhat ]; then
 	redhat "$@"
+elif [ $system = suse ]; then
+        suse "$@"
 fi
 
 
