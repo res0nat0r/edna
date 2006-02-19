@@ -20,9 +20,11 @@
 </font></td></tr></table>
 
 [if-any pictures]
+  <p>
   [for pictures]
-    <img src="[pictures.href]">
+    <a href="[pictures.href]"><img border="0" width="128" height="128" src="[pictures.href]"></a>
   [end]
+  </p>
 [end]
 
 [if-any subdirs]
@@ -32,11 +34,10 @@
   <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
   <tr bgcolor="#d1d5d7"><th>Subdirectories</th></tr>
   <tr><td>
-  <ul>
   [for subdirs]
-    <li>[[]<a href="[subdirs.href]allrecursive.m3u">Play</a>] <a href="[subdirs.href]">[subdirs.text]</a>[subdirs.is_new]</li>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="/resources/folder.png" border="0" align="top">&nbsp;<a href="[subdirs.href]allrecursive.m3u"><img src="/resources/play.png" border="0" align="top"></a>&nbsp;<a href="[subdirs.href]">[subdirs.text]</a>[subdirs.is_new]<br>
   [end]
-  </ul>
+  <br>
   [if-any display-recursive]
     <a href="allrecursive.m3u"><em>Play all songs (recursively)</em></a>
     <br>
@@ -53,11 +54,10 @@
   <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
   <tr bgcolor="#d1d5d7"><th>Songs</th></tr>
   <tr><td>
-  <ul>
   [for songs]
-    <li><a href="[songs.href].m3u">[songs.text]</a>[songs.is_new]</li>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="[songs.href]"><img src="/resources/save.png" border="0" align="top"></a>&nbsp;<a href="[songs.href].m3u"><img src="/resources/play.png" border="0" align="top">&nbsp;[songs.text]</a><br>
   [end]
-  </ul>
+  <br>
   <a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
   <br>
   <a href="shuffle.m3u"><em>Shuffle all songs</em></a>
@@ -72,12 +72,18 @@
   <table border=0 cellpadding=4 cellspacing=0 width="100%" bgcolor="#eaecef">
   <tr bgcolor="#d1d5d7"><th>Playlists</th></tr>
   <tr><td>
-  <ul>
   [for playlists]
-    <li><a href="[playlists.href]">[playlists.text]</a>[playlists.is_new]</li>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="[playlists.href]"><img src="/resources/play.png" border="0" align="top">&nbsp;[playlists.text]</a>[playlists.is_new]<br>
   [end]
-  </ul>
   </td></tr></table></td></tr></table>
+  </p>
+[end]
+
+[if-any plainfiles]
+  <p>
+  [for plainfiles]
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="[plainfiles.href]"><img src="/resources/text.png" border="0" align="top">&nbsp;[plainfiles.text]</a>[plainfiles.is_new]<br>
+  [end]
   </p>
 [end]
 

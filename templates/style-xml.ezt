@@ -65,6 +65,15 @@
   [end]
 [end]
 
+[if-any plainfiles]
+  [for plainfiles]
+    <plainfile>
+      <href>[plainfiles.href]</href>
+      <text>[plainfiles.text]</text>
+    </plainfile>
+  [end]
+[end]
+
 [if-any playlists]
   [for playlists]
     <playlist>

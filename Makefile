@@ -14,11 +14,12 @@ all:
 
 
 install:  
-	install -d $(BINDIR) $(LIBDIR) $(LIBDIR)/templates
+	install -d $(BINDIR) $(LIBDIR) $(LIBDIR)/templates $(LIBDIR)/resources
 	install edna.py $(BINDIR)/edna
 	install ezt.py $(LIBDIR)
 	install MP3Info.py $(LIBDIR)
 	-install -m644 templates/*  $(LIBDIR)/templates
+	-install -m644 resources/*  $(LIBDIR)/resources
 
 install-daemon: install
 	install -d $(CONFDIR) $(INITDIR)

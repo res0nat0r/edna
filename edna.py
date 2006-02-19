@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.79 2006/02/19 02:18:12 syrk Exp $
+#   $Id: edna.py,v 1.80 2006/02/19 18:43:30 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -115,6 +115,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d['log'] = ''
     d['template-dir'] = 'templates'
     d['template'] = 'default.ezt'
+    d['resource-dir'] = 'resources';
     d['auth_level'] = '1'
     d['debug_level'] = '0'
     d['fileinfo'] = '0'
@@ -140,6 +141,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     template_path = config.get('server', 'template-dir')
     template_file = config.get('server', 'template')
     template_path = os.path.join(os.path.dirname(fname), template_path)
+    self.resource_dir = os.path.join(os.path.dirname(fname), config.get('server', 'resource-dir'))
     self.fileinfo = config.getint('server', 'fileinfo')
     self.zipmax = config.getint('server', 'zip') * 1024 * 1024
     self.zipsize = 0
@@ -380,6 +382,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.output_style = 'xml'
 
     if not path and len(self.server.dirs) > 1:
+      # home page
       subdirs = [ ]
       for d, name in self.server.dirs:
         subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
@@ -388,7 +391,12 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     elif path and path[0] == 'stats':
       # the site statistics were requested
       self.display_stats()
+    elif path and path[0] == 'resources' and len(path) > 1:
+      # a resource file was requested
+      fullpath = os.path.join(self.server.resource_dir, path[1])
+      self.serve_file(path[1], fullpath, '/resources');
     else:
+      # other requests fall under the user configured namespace
       if path:
         title = cgi.escape(path[-1])
       else:
@@ -451,6 +459,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       subdirs = []
       songs = []
       playlists = []
+      plainfiles = []
 
       if path:
         thisdir = path[-1]
@@ -486,6 +495,10 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           pictures.append(_datablob(href=href, is_new=is_new))
           continue
 
+        if plainfiles_extensions.has_key(ext):
+          plainfiles.append(_datablob(href=href, is_new=is_new, text=base))
+          continue
+
         if ext == '.m3u':
           playlists.append(_datablob(href=href, is_new=is_new, text=base))
           continue
@@ -516,7 +529,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           if os.path.isdir(fullpath):
             subdirs.append(_datablob(href=href + '/', is_new=is_new, text=name))
 
-      self.display_page(title, subdirs, pictures, songs, playlists)
+      self.display_page(title, subdirs, pictures, plainfiles, songs, playlists)
 
   def display_stats(self):
     self.send_response(200)
@@ -547,7 +560,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     self.server.stats_template.generate(self.wfile, data)
 
-  def display_page(self, title, subdirs, pictures=[], songs=[], playlists=[],
+  def display_page(self, title, subdirs, pictures=[], plainfiles=[], songs=[], playlists=[],
                    skiprec=0):
 
     ### implement a URL-selectable style here with a cache of templates
@@ -565,6 +578,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     data = { 'title' : title,
              'links' : self.tree_position(),
              'pictures' : pictures,
+             'plainfiles' : plainfiles,
              'subdirs' : subdirs,
              'songs' : songs,
              'playlists' : playlists,
@@ -683,6 +697,10 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       st = os.fstat(f.fileno())
       clen = st.st_size
       mtime = st.st_mtime
+    elif url == '/resources':
+      # We don't want to serve pseudo files under /resources
+      self.send_error(404)
+      return
     elif ext == '.m3u':
       type = 'audio/x-mpegurl'
       if name == 'all.m3u' or name == 'allrecursive.m3u' or \
@@ -1022,9 +1040,15 @@ picture_extensions = {
   '.png' : 'image/png',
   }
 
+# Extensions of non-streamed, non-media files we want to serve: (and their MIME type)
+plainfiles_extensions = {
+  '.txt' : 'text/plain',
+  }
+
 any_extensions = {}
 any_extensions.update(extensions)
 any_extensions.update(picture_extensions)
+any_extensions.update(plainfiles_extensions)
 
 config_needed = None
 running = 1
