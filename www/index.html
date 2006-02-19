@@ -18,7 +18,7 @@
 	</td>
 	<td align=center valign=top bgcolor="white" width="1%">
 	  <b>Quickstart:</b>
-	  <a href="edna-0.4.tar.gz">download</a>
+	  <a href="edna-0.5.tar.gz">download</a>
 	</td>
 	<td width="1%"><a href="http://sourceforge.net/"><img border=0
 	      src="http://sourceforge.net/sflogo.php?group_id=18761&type=1"></a><br><a href="http://sourceforge.net/projects/edna/"><span class="edna">edna</span>&nbsp;project&nbsp;page</a>
@@ -101,13 +101,27 @@
     </p>
 
     <hr align=left width="30&#37;">
-    <h2>New features in 0.4</h2>
+    <h2>Features in 0.5</h2>
     <p>
       <span class="edna">edna</span> is currently labeled as
-      <em>version 0.4</em> because there are still a few more features
+      <em>version 0.5</em> because there are still a few more features
       that I would like to add. It is <em>very</em> stable and can be
       used (now) without a problem.
     </p>
+
+<p> Version 0.5 is mostly bugfix release with some added features:
+    See the ChangeLog for full details.
+<p>
+<ul>
+
+<li> Better unix deamon support
+<li> "New since $DATE" is now available as a config option
+<li> Full ID3 (v1 and v2) support (in default_complex.ezt template)
+<li> Catch KeyboardInterrupt exception and print a exit message.
+<li> Debug messages and a config option to enable them
+<li> Urls are now linked and unquoted in the status page
+<li> Simple Ogg Vorbis support
+</ul>
     <p>
       Version 0.4 of edna has quite a lot of new features over
       0.3. Most of this work came from submitted patches (thanks
@@ -145,7 +159,7 @@
       <a href="http://www.python.org/"><i>Python</i></a> script. At
       the moment, it is about 1000 lines (version 0.1
       was only 250!). You can get the source from the
-      <a href="edna-0.4.tar.gz">distribution</a>.
+      <a href="edna-0.5.tar.gz">distribution</a>.
     </p>
 
     <dl>
@@ -231,9 +245,8 @@ Options for 'install' and 'update' commands only:
 
     <h3>Starting edna from sysvinit scripts</h3>
     <p>
-      I don't have any documentation for this right now. Please see
-      the <code>daemon</code> subdirectory for the scripts to
-      use. Adjust the paths for your local setup.
+       Check the included makefile and adjust the installation paths.
+       The script will run edna on startup.
     </p>
 
     <hr align=left width="30&#37;">
@@ -247,12 +260,6 @@ Options for 'install' and 'update' commands only:
       I'm quite willing to accept patches or other fixes. Just
       email them to the edna mailing list at
       <a href="mailto:edna@lyra.org">edna@lyra.org</a>.
-    </p>
-    <p>
-      <span class="edna">edna</span> has some code in it to extract
-      ID3 tags from MP3 files. I'm not using it yet, but will add some
-      code to display the data on the generated web pages. If you have
-      a pet feature, then please let me know!
     </p>
 
     <h3>Thanks</h3>
@@ -276,6 +283,7 @@ Options for 'install' and 'update' commands only:
       <li>"vivake": XML output and extended MP3 info</li>
       <li>Joe Ward: UI improvements</li>
       <li>Dave Williams: watch out for single-letter directories</li>
+      <li>Kristian Kvilekval: bug fixes, page caching, releases, unix daemon mode</li>
     </ul>
 
     <hr>
