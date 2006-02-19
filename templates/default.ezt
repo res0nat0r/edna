@@ -7,6 +7,8 @@
   .isnew { font-size:75%; font-style:italic; color:#008000;
            margin-left: 2em }
 --></style>
+<!-- charset is hard-coded to UTF-8 in the code, DO NOT CHANGE! -->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 </head><body link="#444488" alink="#884444" vlink="#444488">
 <table width="100%" bgcolor="#bbbbff" cellpadding=2><tr>
   <td><font size="+2">

@@ -33,7 +33,7 @@
 
 import string
 import re
-from types import StringType, IntType, FloatType
+from types import StringType, IntType, FloatType, UnicodeType
 
 _re_parse = re.compile('(\[[-\w.# ]+\])|(\[\[\])')
 
@@ -43,9 +43,11 @@ _block_cmds = _block_cmd_specs.keys()
 
 class Template:
 
-  def __init__(self, fname=None):
+  def __init__(self, fname, encodingslist):
     if fname:
       self.parse_file(fname)
+    global encodings
+    encodings = encodingslist
 
   def parse_file(self, fname):
     self.parse(open(fname).read())
@@ -186,11 +188,31 @@ def _get_value(refname, ref, ctx):
     except AttributeError:
       raise UnknownReference(refname)
 
-  # make sure we return a string.  ### other types?
-  if isinstance(ob, IntType) or isinstance(ob, FloatType):
-    return str(ob)
   if ob is None:
     return ''
+
+  # make sure we return a UTF-8 string.  ### other types?
+  if isinstance(ob, IntType) or isinstance(ob, FloatType):
+    return unicode(ob).encode('UTF-8')
+  if isinstance(ob, UnicodeType):
+    return ob.encode('UTF-8')
+  if isinstance(ob, StringType):
+    unob = None
+    # Try to decode using the list of possible encodings given
+    for encoding in encodings:
+      try:
+        unob = unicode(ob, encoding, 'strict')
+        break
+      except UnicodeDecodeError:
+        pass
+
+    if unob is None:
+      # Decoding failed with all of the suggested encodings,
+      # Decode again with the last encoding and ignore errors.
+      unob = unicode(ob, encodings[-1], 'replace')
+
+    return unob.encode('UTF-8')
+
   return ob
 
 class _context:

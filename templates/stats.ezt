@@ -1,4 +1,6 @@
 <html><head><title>edna: Site Statistics</title>
+<!-- charset is hard-coded to UTF-8 in the code, DO NOT CHANGE! -->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <!-- CSS stuff goes here -->
 </head><body><h1>edna: Site Statistics</h1>
 

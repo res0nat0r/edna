@@ -7,6 +7,8 @@
   .isnew { font-size:75%; font-style:italic; color:#008000;
            margin-left: 2em }
 --></style>
+<!-- charset is hard-coded to UTF-8 in the code, DO NOT CHANGE! -->
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 </head><body link="#444488" alink="#884444" vlink="#444488">
 <table width="100%" bgcolor="#bbbbff" cellpadding=2>
 <tbody><tr>
@@ -70,7 +72,7 @@
  <td>Mode Ext.</td>
  <!-- <td>Newness</td> -->
  </tr>
-  
+
   [for songs]
  <tr align="right" style="font-size:75%;font-family:sans-serif;">
  <td align="left"><a href="[songs.href].m3u">[songs.text]</td>
@@ -91,7 +93,7 @@
       <!-- <td>[songs.is_new]</a></td> -->
     </tr>
   [end]
-  </table>
+  </table>
   <a href="all.m3u"><em>Play all songs</em></a> - <a href="all.zip">[[]<em>ZIP</em>]</a>
   <br>
   <a href="shuffle.m3u"><em>Shuffle all songs</em></a>

@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.78 2006/02/04 02:21:04 syrk Exp $
+#   $Id: edna.py,v 1.79 2006/02/19 02:18:12 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -118,6 +118,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d['auth_level'] = '1'
     d['debug_level'] = '0'
     d['fileinfo'] = '0'
+    d['encoding'] = 'UTF-8,iso8859-1'
     d['hide_names'] = ""
     d['hide_matching'] = ""
     d['zip'] = '0'
@@ -155,14 +156,15 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     if debug_level == 1:
       self.log_message('Running in debug mode')
 
+    encodings = string.split(config.get('server', 'encoding'), ',')
     tfname = os.path.join(template_path, template_file)
-    self.default_template = ezt.Template(tfname)
+    self.default_template = ezt.Template(tfname, encodings)
 
     tfname = os.path.join(template_path, 'style-xml.ezt')
-    self.xml_template = ezt.Template(tfname)
+    self.xml_template = ezt.Template(tfname, encodings)
 
     tfname = os.path.join(template_path, 'stats.ezt')
-    self.stats_template = ezt.Template(tfname)
+    self.stats_template = ezt.Template(tfname, encodings)
 
     self.dirs = [ ]
     dirs = [ ]
@@ -381,7 +383,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       subdirs = [ ]
       for d, name in self.server.dirs:
         subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
-                                 text=cgi.escape(name)))
+                                 text=name))
       self.display_page(TITLE, subdirs, skiprec=1)
     elif path and path[0] == 'stats':
       # the site statistics were requested
@@ -478,8 +480,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             continue
 
         base, ext = os.path.splitext(name)
-
-        base, ext = os.path.splitext(name)
         ext = string.lower(ext)
 
         if picture_extensions.has_key(ext):
@@ -487,8 +487,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           continue
 
         if ext == '.m3u':
-          playlists.append(_datablob(href=href, is_new=is_new,
-                                     text=cgi.escape(base)))
+          playlists.append(_datablob(href=href, is_new=is_new, text=base))
           continue
 
         fullpath = os.path.join(curdir, name)
@@ -504,7 +503,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if match:
               base = match.group(1)
 
-          d = _datablob(href=href, is_new=is_new, text=cgi.escape(base))
+          d = _datablob(href=href, is_new=is_new, text=base)
           if self.server.fileinfo:
             info = FileInfo(fullpath)
           else:
@@ -515,8 +514,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
           newdir = os.path.join(curdir, name)
           if os.path.isdir(fullpath):
-            subdirs.append(_datablob(href=href + '/', is_new=is_new,
-                                     text=cgi.escape(name)))
+            subdirs.append(_datablob(href=href + '/', is_new=is_new, text=name))
 
       self.display_page(title, subdirs, pictures, songs, playlists)
 
