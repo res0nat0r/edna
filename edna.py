@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.80 2006/02/19 18:43:30 syrk Exp $
+#   $Id: edna.py,v 1.81 2006/02/20 00:56:04 syrk Exp $
 #
 
 __version__ = '0.5'
@@ -359,7 +359,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     ## verify the Username/Password
     if self.server.auth_table:
-      if self.server.auth_level == '1' or self.path == '/':
+      if self.server.auth_level == '2' or \
+         ( self.server.auth_level == '1' and self.path[-1] == '/' ) or \
+         self.path == '/':
         if not self.check_authorization():
           return
 
