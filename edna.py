@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.81 2006/02/20 00:56:04 syrk Exp $
+#   $Id: edna.py,v 1.82 2006/03/09 22:30:25 gstein Exp $
 #
 
 __version__ = '0.5'
@@ -41,7 +41,6 @@ import socket
 import re
 import stat
 import random
-import datetime
 import time
 import struct
 import zipfile
@@ -757,7 +756,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.send_header("Content-Type", type)
     self.send_header("Content-Length", clen)
     if mtime:
-      self.send_header('Last-Modified', datetime.datetime.fromtimestamp(mtime).strftime("%a, %d %b %Y %T GMT"))
+      self.send_header('Last-Modified', time.strftime("%a, %d %b %Y %T GMT"))
     # Thanks to Stefan Alfredsson <stefan@alfredsson.org>
     # for the suggestion, Now the filenames get displayed right.
     self.send_header("icy-name", base)
@@ -1028,6 +1027,7 @@ extensions = {
   '.mtm' : 'audio/mid',
   '.669' : 'audio/mid',
   '.asx' : 'video/x-ms-asf',
+  '.avi' : 'video/x-msvideo',
   '.mpg' : 'video/mpeg',
   '.ogg' : 'application/x-ogg',
   '.m4a' : 'audio/mp4',
