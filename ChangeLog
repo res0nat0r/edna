@@ -1,24 +1,38 @@
+Changes since 0.5 [2003/05/19]:
+- New auth_level level to help with players unable to handle authentication
+- Updated daemon/edna to support SuSE [by Bill Burdick SF#1225231]
+- Added support for plain text files [by Shaw Terwilliger SF#791444]
+- Added /resources URL to serve icons and such [by Shaw Terwilliger SF#791444]
+- Serve UTF-8 encoded pages, added "encoding" configuration option
+- Send Last-Modified HTTP header for files on disk [SF#987406]
+- Updated MP3Info.py to latest available version
+- http:// & ftp:// playlist handling fix [reported by Dirk Bergstrom SF#673815]
+- Added all.zip pseudo files
+- Extended M3U files are now parsed correctly
+- 401 HTTP replies are now correctly sent on failed authentication attempts
+- Added knowledge of .m4a and .mp4 extensions [SF#1295763]
+- Added support for serving /robots.txt [based on SF#1200988 by fraumeni]
+- Added exception handling on stat() failures. [SF#1200988 by fraumeni]
+- Added support to hide music you're ashamed of. [SF#1200988 by fraumeni]
+- Added support for MD5/SHA hashed passwords [SF#1378194 by Kumar McMillan]
 
-
-Changes for 0.5
----------------------------------------
-
-  - unix deamon support
-  - reload config file on signal
-  - unix makefile
-  - "New since $DATE" is now available as a config option
-  - don't log requests for picture_extensions
-  - Full ID3 (v1 and v2) support (in default_complex.ezt template)
-  - Catch KeyboardInterrupt exception and print a exit message.
-  - Debug messages and a config option to enable them
-  - Urls are now linked and unquoted in the status page
-  - Simple Ogg Vorbis support
-  - Internal: support for Basic Authentication within _perform_GET
-  - Internal: support for seeking (HTTP1.1 Range Requests)
-  - Fixed winamp title problems
-  - Cleaned up error messages:
-  	- bind() error 
-	- configfile not found error
-  - Added name_prefix config option to override HTTP Host header when
-    generating playlists
+Changes since 0.4 [2001/02/22]:
+- unix deamon support
+- reload config file on signal
+- unix makefile
+- "New since $DATE" is now available as a config option
+- don't log requests for picture_extensions
+- Full ID3 (v1 and v2) support (in default_complex.ezt template)
+- Catch KeyboardInterrupt exception and print a exit message.
+- Debug messages and a config option to enable them
+- Urls are now linked and unquoted in the status page
+- Simple Ogg Vorbis support
+- Internal: support for Basic Authentication within _perform_GET
+- Internal: support for seeking (HTTP1.1 Range Requests)
+- Fixed winamp title problems
+- Cleaned up error messages:
+  - bind() error 
+  - configfile not found error
+- Added name_prefix config option to override HTTP Host header when
+  generating playlists
 

@@ -24,10 +24,10 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.82 2006/03/09 22:30:25 gstein Exp $
+#   $Id: edna.py,v 1.83 2006/03/11 19:36:29 syrk Exp $
 #
 
-__version__ = '0.5'
+__version__ = '0.6'
 
 import SocketServer
 import BaseHTTPServer
