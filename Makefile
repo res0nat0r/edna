@@ -2,8 +2,9 @@
 # Makefile to install edna
 #
 
-LIBDIR=$(DESTDIR)/usr/lib/edna
-BINDIR=$(DESTDIR)/usr/bin
+PREFIX=/usr/local
+LIBDIR=$(DESTDIR)$(PREFIX)/lib/edna
+BINDIR=$(DESTDIR)$(PREFIX)/bin
 INITDIR=$(DESTDIR)/etc/init.d
 CONFDIR=$(DESTDIR)/etc/edna
 
@@ -14,11 +15,11 @@ all:
 
 
 install:  
-	install -d $(BINDIR) $(LIBDIR) $(LIBDIR)/templates $(LIBDIR)/resources
+	install -d $(BINDIR) $(LIBDIR) $(CONFDIR)/templates $(LIBDIR)/resources
 	install edna.py $(BINDIR)/edna
 	install ezt.py $(LIBDIR)
 	install MP3Info.py $(LIBDIR)
-	-install -m644 templates/*  $(LIBDIR)/templates
+	-install -m644 templates/*  $(CONFDIR)/templates
 	-install -m644 resources/*  $(LIBDIR)/resources
 
 install-daemon: install
@@ -28,5 +29,4 @@ install-daemon: install
 
 clean:
 	rm -f *~ *.pyc
-
 

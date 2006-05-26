@@ -6,23 +6,21 @@
 # description: edna is a mini mp3 webserver 
 #
 # processname: python
-# pidfile: /var/run/ednad.pid
+# pidfile: /var/run/edna.pid
 # config: 
 
 # Source function library.
 
-#debian vars
-EDNA=/usr/bin/edna
+#vars
+TITLE='edna mp3 server'
+EDNA=/usr/local/bin/edna
 EDNACONF=/etc/edna/edna.conf
 PIDFILE=/var/run/edna.pid
 # redhat
-EDNAD=/usr/bin/ednad
-initdir=/etc/init.d
-pidfile=/var/run/ednad.pid
+initdir=/etc/rc.d/init.d
 
 PYTHON=`which python`
-PYTHONPATH=/usr/lib/edna
-export PYTHONPATH
+export PYTHONPATH=/usr/local/lib/edna
 #
 # Determine which kind of configuration we're using
 #
@@ -31,6 +29,8 @@ if [ -f /etc/debian_version ]; then
     system=debian
 elif [ -f /etc/redhat-release ]; then
     system=redhat
+elif [ -f /etc/fedora-release ]; then
+    system=redhat
 elif [ -f /etc/SuSE-release ]; then
     system=suse
 else
@@ -38,15 +38,15 @@ else
     exit 1
 fi
 
-if [ $system = redhat ]; then
+if [ ${system} = redhat ]; then
     . $initdir/functions
 fi
 
-if [ $system = suse ]; then
+if [ ${system} = suse ]; then
     . /etc/rc.status
 fi
 
-[ -f $EDNA ] || exit 0
+[ -f ${EDNA} ] || exit 0
 
 
 RETVAL=0
@@ -54,18 +54,18 @@ RETVAL=0
 function suse () {
     case "$1" in
     start)
-        echo -n "Starting edna: "
-        startproc -p $PIDFILE $PYTHON $EDNA $EDNACONF >/dev/null 2>&1
+        echo -n "Starting ${TITLE}: "
+        startproc -p ${PIDFILE} ${PYTHON} ${EDNA} ${EDNACONF} >/dev/null 2>&1
         rc_status -v
         ;;
     stop)
-        echo -n "Shutting down edna: "
-	killproc -p $PIDFILE $PYTHON $EDNA $EDNACONF >/dev/null 2>&1
+        echo -n "Shutting down ${TITLE}: "
+    killproc -p ${PIDFILE} ${PYTHON} ${EDNA} ${EDNACONF} >/dev/null 2>&1
         rc_status -v
         ;;
     status)
-        echo -n "Checking for service edna: "
-        checkproc -p $PIDFILE $PYTHON $EDNA $EDNACONF
+        echo -n "Checking for service ${TITLE}: "
+        checkproc -p ${PIDFILE} ${PYTHON} ${EDNA} ${EDNACONF}
         rc_status -v
         ;;
     restart)
@@ -82,75 +82,78 @@ function suse () {
 function redhat () {
     case "$1" in
     start)
-        echo -n "Starting ednad: "
-        daemon ${EDNAD}
+        echo -n "Starting ${TITLE}: "
+        daemon ${EDNA} --daemon ${EDNACONF}
         echo
-        touch /var/lock/subsys/ednad
-        return $RETVAL
+        touch /var/lock/subsys/edna
+        return ${RETVAL}
         ;;
     stop)
-        echo -n "Shutting down ednad: "
-        EDNADPID=
-        EDNADPID=$(cat $pidfile)
-        kill $EDNADPID
+        echo -n "Shutting down ${TITLE}: "
+        killproc ${EDNA}
         echo
-        rm -f /var/lock/subsys/ednad $pidfile
-        return $RETVAL
+        rm -f /var/lock/subsys/edna ${PIDFILE}
+        return ${RETVAL}
         ;;
     status)
-        EDNADPID=
-        EDNADPID=$(cat $pidfile)
-        echo -n "Checking for ednad, PID is : " $EDNADPID
-        echo 
-         ;;
+        EDNAPID=
+        if [ -f ${PIDFILE} ] ; then
+            EDNAPID=$(cat ${PIDFILE})
+        fi
+        if [ -z ${EDNAPID} ] ; then
+            echo $"${0##*/} is stopped"
+        else
+            echo $"${0##*/} (pid ${EDNAPID}) is running..."
+        fi
+        ;;
     restart)
-         stop
-         start
+        $0 stop
+        $0 start
          ;;
     *)
-        echo "Usage: $0 {start | stop | restart | status}"
-	exit 1
+        echo "Usage: $0 {start|stop|restart|status}"
+    exit 1
     esac
 }
 
 function debian () {
 case "$1" in
     start)
-	echo -n 'Starting edna mp3 server: edna'
-	start-stop-daemon --start --quiet --pidfile $PIDFILE  --exec $EDNA -- --daemon $EDNACONF
+    echo -n 'Starting ${TITLE}: edna'
+    start-stop-daemon --start --quiet --pidfile ${PIDFILE}  --exec ${EDNA} -- --daemon ${EDNACONF}
         echo "."
         ;;
 
     stop)
-	echo -n 'Stopping edna mp3 server: edna'
-	start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+    echo -n 'Stopping ${TITLE}: edna'
+    start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE}
         echo "."
-	;;
+    ;;
 
     reload)
-        start-stop-daemon --stop --signal 1 --oknodo --pidfile $PIDFILE
+        start-stop-daemon --stop --signal 1 --oknodo --pidfile ${PIDFILE}
         ;;
 
 
   restart)
-	echo -n 'Restarting edna mp3 server: edna'
-	start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE 
-	sleep 10
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $EDNA -- --daemon $EDNACONF
-	echo "."
-	;;
+    echo -n 'Restarting ${TITLE}: edna'
+    start-stop-daemon --stop --quiet --oknodo --pidfile ${PIDFILE} 
+    sleep 10
+    start-stop-daemon --start --quiet --pidfile ${PIDFILE} --exec ${EDNA} -- --daemon ${EDNACONF}
+    echo "."
+    ;;
 
   *)
-	echo "Usage: /etc/init.d/edna {start|stop|reload|restart}"
-	exit 1
+    echo "Usage: $0 {start|stop|reload|restart}"
+    exit 1
 esac
 }
 
-if [ $system = debian ]; then
-	debian "$@"
-elif [ $system = redhat ]; then
-	redhat "$@"
-elif [ $system = suse ]; then
+if [ ${system} = debian ]; then
+    debian "$@"
+elif [ ${system} = redhat ]; then
+    redhat "$@"
+elif [ ${system} = suse ]; then
         suse "$@"
 fi
 
