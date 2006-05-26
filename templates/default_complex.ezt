@@ -84,16 +84,16 @@
  <td>[songs.info.track]</td>
  <td align="left">[songs.info.title]</td>
  <td align="left">[songs.info.artist]</td>
- <td align="left">[songs.info.composer]</td>
- <td align="left">[songs.info.album]</td>
- <td>[songs.info.year]</td>
- <td align="left">[songs.info.genre]</td>
- <td>[songs.info.duration] </td>
+ <td align="left">[if-any songs.info.composer][songs.info.composer][else]&nbsp;[end]</td>
+ <td align="left">[if-any songs.info.album][songs.info.album][else]&nbsp;[end]</td>
+ <td>[if-any songs.info.year][songs.info.year][else]&nbsp;[end]</td>
+ <td align="left">[if-any songs.info.genre][songs.info.genre][else]&nbsp;[end]</td>
+ <td>[if-any songs.info.duration][songs.info.duration][else]&nbsp;[end] </td>
  <td>[songs.info.filesize] MB</td>
  <td>[songs.info.bitrate] kbps</td>
  <td>[songs.info.samplerate] kHz</td>
- <td align="center">[songs.info.mode]</td>
- <td align="center">[songs.info.mode_extension]</td>
+ <td align="center">[if-any songs.info.mode][songs.info.mode][else]&nbsp;[end]</td>
+ <td align="center">[if-any songs.info.mode_extension][songs.info.mode_extension][else]&nbsp;[end]</td>
       <!-- <td>[songs.is_new]</a></td> -->
     </tr>
   [end]
