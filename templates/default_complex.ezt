@@ -21,6 +21,8 @@
 [end]
 </font></td></tr></tbody></table>
 
+<p align=right><form action=/search><input type=text name=query><input type=submit value=search></form>
+
 [if-any pictures]
   <p>
   [for pictures]

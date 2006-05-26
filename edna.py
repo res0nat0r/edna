@@ -24,7 +24,7 @@
 #    http://edna.sourceforge.net/
 #
 # Here is the CVS ID for tracking purposes:
-#   $Id: edna.py,v 1.83 2006/03/11 19:36:29 syrk Exp $
+#   $Id: edna.py,v 1.84 2006/05/26 01:15:56 syrk Exp $
 #
 
 __version__ = '0.6'
@@ -47,7 +47,7 @@ import zipfile
 import ezt
 import MP3Info
 import md5
-
+from scheduler import Scheduler
 try:
   import signal
   signalSupport = 'yes'
@@ -122,6 +122,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     d['hide_names'] = ""
     d['hide_matching'] = ""
     d['zip'] = '0'
+    d['refresh_offset'] = 0
+    d['refresh_interval'] = 0
 
     config.read(fname)
 
@@ -249,6 +251,46 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         self.log_message( "edna: bind(): %s" % str(value[1]) )
         raise SystemExit
 
+    # Check the configuration to see if we should be caching filenames.
+    # If so, start up the scheduler.
+    refresh_offset = config.getint('filename_cache', 'refresh_offset')
+    refresh_interval = config.getint('filename_cache', 'refresh_interval')
+    self.filename_cache = None
+    self.filename_cache_refresh_scheduler = None
+    if (refresh_offset >= 0 and refresh_interval >= 0):
+      self.log_message("edna: Scheduling filename cache refresh for every " + self.hms(refresh_interval) + " after " + self.hms(refresh_offset))
+      self.filename_cache_refresh_scheduler = Scheduler(refresh_offset, refresh_interval, Server.filename_cache_refresh, [self], sleep_quantum=10)
+      self.filename_cache_refresh_scheduler.start()
+
+  def hms(self, t):
+    """Return a string hhhh:mm:ss for a time in seconds."""
+    return `t / 3600` + ':' + string.zfill(`(t / 60) % 60`, 2) + ':' + string.zfill(`t % 60`, 2)
+
+  def filename_cache_refresh(self):
+    """Refresh the filenames cache.  Called by the scheduler"""
+    start_time = time.time()
+    self.filename_cache = self.get_filenames()
+    self.log_message( \
+      "edna: Filename cache refresh started at " + time.ctime(start_time) \
+      + ", took " + `int(round(time.time() - start_time))` \
+      + " seconds, found " + `len(self.filename_cache)` \
+      + " files and directories.")
+     
+  def get_filenames(self):
+    """Collect up filenames under the server directories.
+       Server_collect_filenames does all the work."""
+    filenames = [ ]
+    for root, name in self.dirs:
+      os.path.walk(root, Server_collect_filenames, (root, name, filenames))
+    return filenames
+
+  def server_close(self):
+    """Shut down the server."""
+    if self.filename_cache_refresh_scheduler:
+      print "edna: Shutting down filename cache refresh scheduler"
+      self.filename_cache_refresh_scheduler.stop()
+    SocketServer.TCPServer.server_close(self)
+
   def server_bind(self):
     # set SO_REUSEADDR (if available on this platform)
     if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
@@ -293,6 +335,24 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     if debug_level<1:
       return
     self.log_message ('DEBUG: ' + msg)
+
+def Server_collect_filenames(context, dirname, filenames):
+  """Called by os.walk(), collects up file and directory names into
+  a list of tuples containing the root directory name, the relative
+  path from the root to the file, and the filename.  Path separators
+  are translated to "/".  Marks directories by appending "/" to the name.
+  It's important that this function collects *everything* that the search
+  needs to qualify search results.  Otherwise searches will have to hit the
+  filesystem, which is what we're trying to avoid.  For example, if we 
+  wanted to allow searches by date, this function should collect the file
+  dates."""
+  rootdir, rootname, resultlist = context
+  reldir = string.replace(dirname[len(rootdir)+1:], os.sep, '/')
+  for filename in filenames:
+    if os.path.isdir(os.path.join(dirname, filename)):
+      resultlist.append((rootname, reldir, filename + '/'))
+    else:
+      resultlist.append((rootname, reldir, filename))
 
 class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -383,7 +443,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           self.output_style = 'xml'
 
     if not path and len(self.server.dirs) > 1:
-      # home page
+  # home page
       subdirs = [ ]
       for d, name in self.server.dirs:
         subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
@@ -396,6 +456,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # a resource file was requested
       fullpath = os.path.join(self.server.resource_dir, path[1])
       self.serve_file(path[1], fullpath, '/resources');
+    elif path and path[0][0:7] == 'search?': 
+     # the search option is being used 
+     self.display_search(path[0][7:]) 
     else:
       # other requests fall under the user configured namespace
       if path:
@@ -532,6 +595,63 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
       self.display_page(title, subdirs, pictures, plainfiles, songs, playlists)
 
+  def filename_qualifies(self, query, filename):
+    """This function checks whether a 'filename' string qualifies as results
+    for the query entered on the search form. Change this function if you want
+    to make the search work differently.  This implementation qualifies a
+    filename if it contains all of the search word substrings; a search for
+    e.g., "yo yo" will match "Yo Yo Ma" but also "Your Cheating Heart".
+    """
+    search_words = string.split(query, ' ')
+    for word in search_words:
+      if string.find(string.lower(filename), string.lower(word)) == -1:
+        return 0
+    return 1
+
+  def display_search(self, querystring):
+    """Display a page of search results.  The results will contain files and
+    directories whose names match query specified in the query string's
+    query variable.
+
+    Uses the default template to output results.  This is simple and provides
+    a nice consistent look and feel.  However, if the user wanted to, e.g.,
+    play the album with the song "Green Eyes", the search will lead to the song
+    but not provide any links to the album or artist.  It would be nice if the
+    search results provided links to each directory path element (somewhat like
+    the title does).  But this would require either a new template for searches
+    or complexifying the default one.
+    """
+    subdirs = [ ]
+    songs = [ ]
+    queryvars = cgi.parse_qs(querystring)
+    if queryvars.has_key('query'):
+      query = queryvars['query'][0]
+      filenames = self.server.filename_cache
+      if filenames == None:
+        filenames = self.server.get_filenames()
+      for root, dir, name in filenames:
+        if self.filename_qualifies(query, name):
+	  if len(self.server.dirs) > 1:
+	    link_path = root + '/' + dir + '/' + name
+	  else:
+	    link_path = dir + '/' + name
+          display_path = cgi.escape(string.replace(os.path.splitext(link_path)[0], "/", " / "))
+          if name[-1:] == '/':
+            subdirs.append(_datablob(href=urllib.quote(link_path), is_new='', text=display_path))
+          else:
+            if extensions.has_key(os.path.splitext(name)[1]):
+              d = _datablob(href=urllib.quote(link_path), is_new='', text=display_path)
+              if self.server.fileinfo:
+                for sd in self.server.dirs:
+                  if sd[1] == root:
+                    fullpath = os.path.join(sd[0], string.replace(dir, "/", os.sep), name)
+                info = FileInfo(fullpath)
+              else:
+                info = _datablob()
+              d.info = empty_delegator(info)
+              songs.append(d)
+    self.display_page(TITLE, subdirs, songs=songs, skiprec=1)
+    
   def display_stats(self):
     self.send_response(200)
     self.send_header("Content-Type", 'text/html')
@@ -558,7 +678,6 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       d.count, tm = ip_log[ip]
       d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
       data['ips'].append(d)
-
     self.server.stats_template.generate(self.wfile, data)
 
   def display_page(self, title, subdirs, pictures=[], plainfiles=[], songs=[], playlists=[],
@@ -1089,11 +1208,11 @@ def run_server(fname):
         config_needed  = None
       svr.handle_request()
     svr.log_message ("edna: exiting")
-    sys.exit(0)
   except KeyboardInterrupt:
     print "\nCaught ctr-c, taking down the server"
     print "Please wait while the remaining streams finish.."
-    sys.exit(0)
+  svr.server_close()
+  sys.exit(0)
 
 def usage():
       print 'USAGE: %s [--daemon] [config-file]' % os.path.basename(sys.argv[0])
