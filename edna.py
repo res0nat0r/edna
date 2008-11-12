@@ -1164,6 +1164,7 @@ picture_extensions = {
 # Extensions of non-streamed, non-media files we want to serve: (and their MIME type)
 plainfiles_extensions = {
   '.txt' : 'text/plain',
+	'.nfo' : 'text/plain',
   }
 
 any_extensions = {}
