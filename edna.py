@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # edna.py -- an MP3 server
 #
@@ -29,25 +29,26 @@
 
 __version__ = '0.6'
 
-import SocketServer
-import BaseHTTPServer
-import ConfigParser
-import sys
-import string
-import os
 import cgi
-import urllib
-import socket
-import re
-import stat
-import random
-import time
-import struct
-import zipfile
+import configparser
 import ezt
+import html
+import io
 import MP3Info
-import md5
+import os
+import random
+import re
+import socket
+import stat
+import string
+import struct
+import sys
+import time
+import urllib
+import zipfile
 from scheduler import Scheduler
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
 try:
   import signal
   signalSupport = 'yes'
@@ -59,12 +60,6 @@ try:
   oggSupport = 'yes'
 except ImportError:
   oggSupport = 'no'
-
-try:
-  import cStringIO
-  StringIO = cStringIO
-except ImportError:
-  import StringIO
 
 try:
   import sha
@@ -81,24 +76,13 @@ TITLE = 'Streaming MP3 Server'
 ### would be nice to get a bit fancier with the possible trimming
 re_trim = re.compile('[-0-9 ]*-[ ]*(.*)')
 
-# determine which mixin to use: prefer threading, fall back to forking.
-try:
-  import thread
-  mixin = SocketServer.ThreadingMixIn
-except ImportError:
-  if not hasattr(os, 'fork'):
-    print "ERROR: your platform does not support threading OR forking."
-    sys.exit(1)
-  mixin = SocketServer.ForkingMixIn
 
-
-
-class Server(mixin, BaseHTTPServer.HTTPServer):
+class Server(ThreadingHTTPServer):
   def __init__(self, fname):
     self.userLog = [ ] # to track server usage
     self.userIPs = { } # log unique IPs
 
-    config = self.config = ConfigParser.ConfigParser()
+    config = self.config = configparser.ConfigParser()
 
     config.add_section('server')
     config.add_section('sources')
@@ -159,7 +143,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     if debug_level == 1:
       self.log_message('Running in debug mode')
 
-    encodings = string.split(config.get('server', 'encoding'), ',')
+    encodings = config.get('server', 'encoding').split(',')
     tfname = os.path.join(template_path, template_file)
     self.default_template = ezt.Template(tfname, encodings)
 
@@ -175,10 +159,10 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       if option[:3] == 'dir':
         dirs.append((int(option[3:]), config.get('sources', option)))
     if not dirs:
-      raise error, 'no sources'
+      raise ValueError('No sources')
     dirs.sort()
     for i in range(len(dirs)):
-      dir = map(string.strip, string.split(dirs[i][1], '='))
+      dir = tuple(map(str.strip, dirs[i][1].split('=')))
       if len(dir) == 1:
         name = dir[0]
       else:
@@ -187,7 +171,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         self.log_message("WARNING: a source's directory must exist")
         self.log_message(" skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name))
         continue
-      if string.find(name, '/') != -1:
+      if '/' in name:
         self.log_message("WARNING: a source's display name cannot contain '/'")
         self.log_message(" skipping: dir%d = %s = %s" % (dirs[i][0], dir[0], name))
         continue
@@ -196,11 +180,11 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     self.acls = []
     try:
       allowed = re.split(r'[\s\n,]+', config.get('acl', 'allow'))
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
       allowed = []
     for addr in allowed:
       if '/' in addr:
-        addr, masklen = string.split(addr, '/')
+        addr, masklen = addr.split('/')
         masklen = int(masklen)
       else:
         masklen = 32
@@ -218,7 +202,7 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       try:
         self.password_hash = config.get('acl','password_hash')
         
-        if not globals().has_key(self.password_hash):
+        if self.password_hash not in globals():
           self.log_message("WARNING: there is no hash module '%s' for passwords" % \
                                                                   self.password_hash)
           self.password_hash = None
@@ -233,9 +217,9 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
         self.debug_message("passwords authenticated in plain text")
         
       for pair in auth_pairs:
-        user,passw = string.split(pair,':')
+        user,passw = pair.split(':')
         self.auth_table[user] = passw
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
       self.auth_table = {}
 
     self.auth_level = config.get('acl', 'auth_level')
@@ -243,18 +227,28 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     self.name_prefix = config.get('server', 'name_prefix')
 
     self.port = config.getint('server', 'port')
+
+    self.filename_cache = None
+    self.filename_cache_refresh_scheduler = None
+
     try:
-        SocketServer.TCPServer.__init__(self,
-            (config.get('server', 'binding-hostname'), self.port),
-            EdnaRequestHandler)
-    except socket.error, value:
-        self.log_message( "edna: bind(): %s" % str(value[1]) )
+        super().__init__(
+          (config.get('server', 'binding-hostname'), self.port),
+          EdnaRequestHandler
+        )
+    except Exception as e:
+        self.log_message("edna: bind(): %s" % str(e))
         raise SystemExit
 
     # Check the configuration to see if we should be caching filenames.
     # If so, start up the scheduler.
-    refresh_offset = config.getint('filename_cache', 'refresh_offset')
-    refresh_interval = config.getint('filename_cache', 'refresh_interval')
+    refresh_offset = -1
+    refresh_interval = -1
+    try:
+        refresh_offset = config.getint('filename_cache', 'refresh_offset')
+        refresh_interval = config.getint('filename_cache', 'refresh_interval')
+    except configparser.NoSectionError:
+        pass
     self.filename_cache = None
     self.filename_cache_refresh_scheduler = None
     if (refresh_offset >= 0 and refresh_interval >= 0):
@@ -263,8 +257,11 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
       self.filename_cache_refresh_scheduler.start()
 
   def hms(self, t):
-    """Return a string hhhh:mm:ss for a time in seconds."""
-    return `t / 3600` + ':' + string.zfill(`(t / 60) % 60`, 2) + ':' + string.zfill(`t % 60`, 2)
+    """Return a string hh:mm:ss for a time in seconds."""
+    (t, ss) = divmod(t, 60)
+    (t, mm) = divmod(t, 60)
+    (t, hh) = divmod(t, 60)
+    return '%02d:%02d:%02d' % (hh, mm, ss)
 
   def filename_cache_refresh(self):
     """Refresh the filenames cache.  Called by the scheduler"""
@@ -272,8 +269,8 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
     self.filename_cache = self.get_filenames()
     self.log_message( \
       "edna: Filename cache refresh started at " + time.ctime(start_time) \
-      + ", took " + `int(round(time.time() - start_time))` \
-      + " seconds, found " + `len(self.filename_cache)` \
+      + ", took " + str(int(round(time.time() - start_time))) \
+      + " seconds, found " + str(len(self.filename_cache)) \
       + " files and directories.")
      
   def get_filenames(self):
@@ -287,16 +284,16 @@ class Server(mixin, BaseHTTPServer.HTTPServer):
   def server_close(self):
     """Shut down the server."""
     if self.filename_cache_refresh_scheduler:
-      print "edna: Shutting down filename cache refresh scheduler"
+      print("edna: Shutting down filename cache refresh scheduler")
       self.filename_cache_refresh_scheduler.stop()
-    SocketServer.TCPServer.server_close(self)
+    super().server_close()
 
   def server_bind(self):
     # set SO_REUSEADDR (if available on this platform)
     if hasattr(socket, 'SOL_SOCKET') and hasattr(socket, 'SO_REUSEADDR'):
       self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-    BaseHTTPServer.HTTPServer.server_bind(self)
+    super().server_bind()
 
   def log_user(self, ip, tm, url):
     if len(self.userLog) > 40:
@@ -347,14 +344,14 @@ def Server_collect_filenames(context, dirname, filenames):
   wanted to allow searches by date, this function should collect the file
   dates."""
   rootdir, rootname, resultlist = context
-  reldir = string.replace(dirname[len(rootdir)+1:], os.sep, '/')
+  reldir = dirname[len(rootdir)+1:].replace(os.sep, '/')
   for filename in filenames:
     if os.path.isdir(os.path.join(dirname, filename)):
       resultlist.append((rootname, reldir, filename + '/'))
     else:
       resultlist.append((rootname, reldir, filename))
 
-class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class EdnaRequestHandler(BaseHTTPRequestHandler):
 
   def do_GET(self):
     try:
@@ -366,7 +363,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def check_authorization(self):
     auth_table = self.server.auth_table
-    auth = self.headers.getheader('Authorization')
+    auth = self.headers.get('Authorization')
     this_user, this_pass = None, None
     if auth:
       def transl(passwd):
@@ -376,21 +373,20 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if not self.server.password_hash:
         transl = str # i.e. no translation
         
-      if string.lower(auth[:6]) == 'basic ':
+      if auth[:6].lower() == 'basic ':
         import base64
-        [name,password] = string.split(
-          base64.decodestring(string.split(auth)[-1]), ':')
+        [name,password] = base64.decodestring(auth.split()[-1]).strip(':')
         this_user, this_pass = name, password
       
       this_pass = transl(this_pass)
-      if auth_table.has_key(this_user) and auth_table[this_user] == this_pass:
+      if auth_table.get(this_user) == this_pass:
         self.server.debug_message('--- Authenticated --- User: %s Password: %s' % \
                                                         (this_user, this_pass))
         return 1
 
       self.server.debug_message('--- Auth FAILED --- User: %s Password: %s' % \
                                 (this_user, this_pass))
-      if not auth_table.has_key(this_user):
+      if this_user not in auth_table:
         self.server.debug_message('--- User does not exist --- %s' % this_user)
 
     realm='edna'
@@ -446,7 +442,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   # home page
       subdirs = [ ]
       for d, name in self.server.dirs:
-        subdirs.append(_datablob(href=urllib.quote(name) + '/', is_new='',
+        subdirs.append(_datablob(href=urllib.parse.quote(name) + '/', is_new='',
                                  text=name))
       self.display_page(TITLE, subdirs, skiprec=1)
     elif path and path[0] == 'stats':
@@ -462,14 +458,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     else:
       # other requests fall under the user configured namespace
       if path:
-        title = cgi.escape(path[-1])
+        title = html.escape(path[-1])
       else:
         title = TITLE
       if len(self.server.dirs) == 1:
         url = '/'
         curdir = self.server.dirs[0][0]
       else:
-        url = '/' + urllib.quote(path[0])
+        url = '/' + urllib.parse.quote(path[0])
         for d, name in self.server.dirs:
           if path[0] == name:
             curdir = d
@@ -489,9 +485,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         pathname = os.path.join(curdir, p)
         base, ext = os.path.splitext(p)
-        if string.lower(ext) == '.m3u':
+        if ext.lower() == '.m3u':
           base, ext = os.path.splitext(base)
-          if extensions.has_key(string.lower(ext)):
+          if ext.lower() in extensions:
             # something.mp3.m3u -- one of our pseudo-files
             pathname = os.path.join(curdir, base + ext)
 
@@ -501,14 +497,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
         if os.path.isfile(pathname):
           # requested a file.
-          self.serve_file(p, pathname, url, self.headers.getheader('range'))
+          self.serve_file(p, pathname, url, self.headers.get('range'))
           return
 
         curdir = pathname
         if url == '/':
-          url = '/' + urllib.quote(p)
+          url = '/' + urllib.parse.quote(p)
         else:
-          url = url + '/' + urllib.quote(p)
+          url = url + '/' + urllib.parse.quote(p)
 
       # requested a directory.
 
@@ -533,12 +529,12 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       thisdirlen = len(thisdir)
 
       for name in sort_dir(curdir):
-        href = urllib.quote(name)
+        href = urllib.parse.quote(name)
         try:
           is_new = check_new(os.stat(os.path.join(curdir, name))[stat.ST_MTIME])
         except: 
           # For example, in the case of disk I/O errors
-          print "Failed to stat %s"%(name)
+          print("Failed to stat %s"%(name))
           continue
         nameLower = name.lower()
         if nameLower in HIDE_EXACT: continue
@@ -553,13 +549,13 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             continue
 
         base, ext = os.path.splitext(name)
-        ext = string.lower(ext)
+        ext = ext.lower()
 
-        if picture_extensions.has_key(ext):
+        if ext in picture_extensions:
           pictures.append(_datablob(href=href, is_new=is_new))
           continue
 
-        if plainfiles_extensions.has_key(ext):
+        if ext in plainfiles_extensions:
           plainfiles.append(_datablob(href=href, is_new=is_new, text=base))
           continue
 
@@ -568,7 +564,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           continue
 
         fullpath = os.path.join(curdir, name)
-        if extensions.has_key(ext):
+        if ext in extensions:
           # if a song has a prefix that matches the directory, and something
           # exists after that prefix, then strip it. don't strip if the
           # directory is a single-letter.
@@ -602,9 +598,9 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     filename if it contains all of the search word substrings; a search for
     e.g., "yo yo" will match "Yo Yo Ma" but also "Your Cheating Heart".
     """
-    search_words = string.split(query, ' ')
+    search_words = query.splti(' ')
     for word in search_words:
-      if string.find(string.lower(filename), string.lower(word)) == -1:
+      if filename.lower() not in word.lower():
         return 0
     return 1
 
@@ -624,27 +620,27 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     subdirs = [ ]
     songs = [ ]
     queryvars = cgi.parse_qs(querystring)
-    if queryvars.has_key('query'):
+    if 'query' in queryvars:
       query = queryvars['query'][0]
       filenames = self.server.filename_cache
       if filenames == None:
         filenames = self.server.get_filenames()
       for root, dir, name in filenames:
         if self.filename_qualifies(query, name):
-	  if len(self.server.dirs) > 1:
-	    link_path = root + '/' + dir + '/' + name
-	  else:
-	    link_path = dir + '/' + name
-          display_path = cgi.escape(string.replace(os.path.splitext(link_path)[0], "/", " / "))
-          if name[-1:] == '/':
-            subdirs.append(_datablob(href=urllib.quote(link_path), is_new='', text=display_path))
+          if len(self.server.dirs) > 1:
+            link_path = root + '/' + dir + '/' + name
           else:
-            if extensions.has_key(os.path.splitext(name)[1]):
-              d = _datablob(href=urllib.quote(link_path), is_new='', text=display_path)
+            link_path = dir + '/' + name
+          display_path = html.escape(os.path.splitext(link_path)[0].replace("/", " / "))
+          if name[-1:] == '/':
+            subdirs.append(_datablob(href=urllib.parse.quote(link_path), is_new='', text=display_path))
+          else:
+            if os.path.splitext(name)[1] in extensions:
+              d = _datablob(href=urllib.parse.quote(link_path), is_new='', text=display_path)
               if self.server.fileinfo:
                 for sd in self.server.dirs:
                   if sd[1] == root:
-                    fullpath = os.path.join(sd[0], string.replace(dir, "/", os.sep), name)
+                    fullpath = os.path.join(sd[0], dir.replace("/", os.sep), name)
                 info = FileInfo(fullpath)
               else:
                 info = _datablob()
@@ -665,7 +661,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     for i in range(len(user_log) - 1, -1, -1):
       d = _datablob()
       d.ip, tm, d.url = user_log[i]
-      d.unquoted_url = urllib.unquote(d.url)
+      d.unquoted_url = urllib.parse.unquote(d.url)
       d.time = time.strftime("%B %d %I:%M:%S %p", time.localtime(tm))
       data['users'].append(d)
 
@@ -722,14 +718,14 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     last = len(mypath)
     for count in range(last):
-      url = url + '/' + urllib.quote(mypath[count])
-      text = cgi.escape(mypath[count])
+      url = url + '/' + urllib.parse.quote(mypath[count])
+      text = html.escape(mypath[count])
       if count == last - 1:
         links.append('<b> / %s</b>' % text)
       else:
         links.append('<b> / </b><a href="%s/">%s</a>' % (url, text))
 
-    return '<p>' + string.join(links, '\n') + '</p>'
+    return '<p>' + '\n'.join(links) + '</p>'
 
   def make_list(self, fullpath, url, recursive, shuffle, songs=None):
     # This routine takes a string for 'fullpath' and 'url', a list for
@@ -752,7 +748,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     for name in sort_dir(fullpath):
       if url:
         base, ext = os.path.splitext(name)
-        if extensions.has_key(string.lower(ext)):
+        if ext.lower() in extensions:
           # add the song's URL to the list we're building
           songs.append(self.build_url(url, name) + '\n')
       else:
@@ -762,8 +758,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # recurse down into subdirectories looking for more MP3s.
       if recursive and os.path.isdir(fullpath + '/' + name):
         songs = self.make_list(fullpath + '/' + name,
-                               url + '/' + urllib.quote(name),
-                               recursive, 0,	# don't shuffle subdir results
+                               url + '/' + urllib.parse.quote(name),
+                               recursive, 0,    # don't shuffle subdir results
                                songs)
 
     # The user asked us to mix up the results.
@@ -781,7 +777,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     output = [ ]
     for line in f.readlines():
-      line = string.strip(line)
+      line = line.strip()
       if line[:7] == '#EXTM3U' or line[:8] == '#EXTINF:':
         output.append(line)
         continue
@@ -795,21 +791,21 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       if not os.path.exists(os.path.join(dirpath, line)):
         self.log_message('file not found (in "%s"): %s', self.path, line)
         continue
-      line = string.replace(line, "\\", "/")  # if we're on Windows
+      line = line.replace("\\", "/")  # if we're on Windows
       output.append(self.build_url(url, line))
 
-    f = StringIO.StringIO(string.join(output, '\n') + '\n')
+    f = io.StringIO('\n'.join(output) + '\n')
     return f
 
   def serve_file(self, name, fullpath, url, range=None):
     base, ext = os.path.splitext(name)
-    ext = string.lower(ext)
+    ext = ext.lower()
     mtime = None
-    if any_extensions.has_key(ext):
-      if not picture_extensions.has_key(ext):
+    if ext in any_extensions:
+      if ext not in picture_extensions:
         # log the request of this file
         ip, port = self.client_address
-        self.server.log_user(ip, time.time(), url + '/' + urllib.quote(name))
+        self.server.log_user(ip, time.time(), url + '/' + urllib.parse.quote(name))
 
       # get the file and info for delivery
       type = any_extensions[ext]
@@ -831,12 +827,12 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # generate the list of URLs to the songs
         songs = self.make_list(fullpath, url, recursive, shuffle)
 
-        f = StringIO.StringIO(string.join(songs, ''))
+        f = io.StringIO(''.join(songs))
         clen = len(f.getvalue())
       else:
         base, ext = os.path.splitext(base)
-        if extensions.has_key(string.lower(ext)):
-          f = StringIO.StringIO(self.build_url(url, base) + ext + '\n')
+        if ext.lower() in extensions:
+          f = io.StringIO(self.build_url(url, base) + ext + '\n')
           clen = len(f.getvalue())
         else:
           f = self.open_playlist(fullpath, url)
@@ -848,7 +844,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return
 
       type = 'application/zip'
-      f = StringIO.StringIO()
+      f = io.StringIO()
       z = zipfile.ZipFile(f, 'w', zipfile.ZIP_STORED)
       songs = self.make_list(fullpath, None, None, None)
       for s in songs:
@@ -883,8 +879,8 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     #Seek if the client requests it (a HTTP/1.1 request)
     if range:
-      type, seek = string.split(range,'=')
-      startSeek, endSeek = string.split(seek,'-')
+      type, seek = range.split('=')
+      startSeek, endSeek = seek.split('-')
       f.seek(int(startSeek))
 
     while 1:
@@ -904,15 +900,15 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.server.zipsize -= clen
 
   def build_url(self, url, file=''):
-    host = self.server.name_prefix or self.headers.getheader('host') or self.server.server_name
-    if string.find(host, ':'):
-      return 'http://%s%s/%s' % (host, url, urllib.quote(file))
+    host = self.server.name_prefix or self.headers.get('host') or self.server.server_name
+    if ':' in host:
+      return 'http://%s%s/%s' % (host, url, urllib.parse.quote(file))
     return 'http://%s:%s%s/%s' % (host, self.server.server_port, url,
-                                  urllib.quote(file))
+                                  urllib.parse.quote(file))
 
   def translate_path(self):
-    parts = string.split(urllib.unquote(self.path), '/')
-    parts = filter(None, parts)
+    parts = urllib.parse.unquote(self.path).split('/')
+    parts = list(filter(None, parts))
     while 1:
       try:
         parts.remove('.')
@@ -956,7 +952,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     self.server.log_message (msg)
 
   def setup(self):
-    SocketServer.StreamRequestHandler.setup(self)
+    super().setup()
 
     # wrap the wfile with a class that will eat up "Broken pipe" errors
     self.wfile = _SocketWriter(self.wfile)
@@ -973,8 +969,7 @@ class EdnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       pass
 
   def version_string(self):
-    return BaseHTTPServer.BaseHTTPRequestHandler.version_string(self) \
-           + ' edna/' + __version__
+    return super().version_string() + ' edna/' + __version__
 
 
 class _SocketWriter:
@@ -987,9 +982,10 @@ class _SocketWriter:
 
   def write(self, buf):
     try:
-      s_buf = str(buf)
-      return self.wfile.write(s_buf)
-    except IOError, v:
+      if type(buf) != bytes:
+          buf = str(buf).encode()
+      return self.wfile.write(buf)
+    except IOError as v:
       if v.errno == 32 or v.errno == 104:
         raise ClientAbortedException
       else:
@@ -1020,7 +1016,7 @@ class FileInfo:
 
   def __init__(self, fullpath):
     base, ext = os.path.splitext(fullpath)
-    ext = string.lower(ext)
+    ext = ext.lower()
 
     if ext == '.ogg':
       info = OggInfo(fullpath)
@@ -1111,12 +1107,12 @@ def _usable_file(fname):
   return fname[0] != '.'
 
 def sort_dir(d):
-  l = filter(_usable_file, os.listdir(d))
+  l = list(filter(_usable_file, os.listdir(d)))
   l.sort()
   return l
 
 def dot2int(dotaddr):
-  a, b, c, d = map(int, string.split(dotaddr, '.'))
+  a, b, c, d = tuple(map(int, dotaddr.split('.')))
   return (a << 24) + (b << 16) + (c << 8) + (d << 0)
 
 # return empty string or a "new since..." string
@@ -1164,7 +1160,7 @@ picture_extensions = {
 # Extensions of non-streamed, non-media files we want to serve: (and their MIME type)
 plainfiles_extensions = {
   '.txt' : 'text/plain',
-	'.nfo' : 'text/plain',
+        '.nfo' : 'text/plain',
   }
 
 any_extensions = {}
@@ -1201,7 +1197,7 @@ def run_server(fname):
   svr.log_message("edna: serving on port %d..." % svr.port)
   try:
     while running:
-#      print 'waiting ... '
+#      print('waiting ... ')
       if config_needed:
         svr.log_message('edna: Reloading config %s' % fname)
         svr.server_close()
@@ -1210,14 +1206,14 @@ def run_server(fname):
       svr.handle_request()
     svr.log_message ("edna: exiting")
   except KeyboardInterrupt:
-    print "\nCaught ctr-c, taking down the server"
-    print "Please wait while the remaining streams finish.."
+    print("\nCaught ctr-c, taking down the server")
+    print("Please wait while the remaining streams finish...")
   svr.server_close()
   sys.exit(0)
 
 def usage():
-      print 'USAGE: %s [--daemon] [config-file]' % os.path.basename(sys.argv[0])
-      print '  if config-file is not specified, then edna.conf is used'
+      print('USAGE: %s [--daemon] [config-file]' % os.path.basename(sys.argv[0]))
+      print('  if config-file is not specified, then edna.conf is used')
       sys.exit(0)
 
 def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null',pname=''):
@@ -1235,8 +1231,8 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null',pname=''
         pid = os.fork() 
         if pid > 0:
             sys.exit(0) # Exit first parent.
-    except OSError, e: 
-        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror)    )
+    except OSError as e: 
+        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror))
         sys.exit(1)
         
     # Decouple from parent environment.
@@ -1253,8 +1249,8 @@ def daemonize(stdin='/dev/null', stdout='/dev/null', stderr='/dev/null',pname=''
               pidfile.write(str (pid))
               pidfile.close()
             sys.exit(0) # Exit second parent.
-    except OSError, e: 
-        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror)    )
+    except OSError as e: 
+        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror))
         sys.exit(1)
     # Now I am a daemon!
     # Redirect standard file descriptors.
@@ -1272,14 +1268,14 @@ if __name__ == '__main__':
   for a in sys.argv[1:]:
     if a == "--daemon":
       daemon_mode=1
-    elif a == "--help" or a == "-h" or string.find(a, '--')==0:
+    elif a == "--help" or a == "-h" or a[:2] == '--':
       usage()
     else:
       fname = a
 
   if os.path.isfile(fname) != 1:
-    print "edna: %s:No such file" %fname
-    raise systemExit
+    print("edna: %s:No such file" %fname)
+    raise SystemExit
 
   if daemon_mode:
     daemonize('/dev/null', '/var/log/edna.log', '/var/log/edna.log', '/var/run/edna.pid')

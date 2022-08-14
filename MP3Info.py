@@ -404,7 +404,7 @@ class MPEG:
         while curr_pos <= seeklimit:            
             # look for the sync byte
             offset = string.find(header, chr(255), curr_pos)
-            #print curr_pos + seekstart
+            #print(str(curr_pos + seekstart))
             if offset == -1:
                 curr_pos = len(header)  # Header after everything so far
                 read_more = 1 # True
@@ -640,19 +640,19 @@ class MP3Info:
 if __name__ == '__main__':
     import sys
     i = MP3Info(open(sys.argv[1], 'rb'))
-    print "File Info"
-    print "---------"
+    print("File Info")
+    print("---------")
     for key in i.__dict__.keys():
-        print key, ": ", i.__dict__[key]
+        print(key, ": ", i.__dict__[key])
 
     print
-    print "MPEG Info"
-    print "---------"
+    print("MPEG Info")
+    print("---------")
     for key in i.mpeg.__dict__.keys():
-        print key, ": ", i.mpeg.__dict__[key]
+        print(key, ": ", i.mpeg.__dict__[key])
 
     print
-    print "ID3 Info"
-    print "--------"
+    print("ID3 Info")
+    print("--------")
     for key in i.id3.__dict__.keys():
-        print key, ": ", i.id3.__dict__[key]
+        print(key, ": ", i.id3.__dict__[key])

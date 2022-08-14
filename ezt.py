@@ -33,7 +33,6 @@
 
 import string
 import re
-from types import StringType, IntType, FloatType, UnicodeType
 
 _re_parse = re.compile('(\[[-\w.# ]+\])|(\[\[\])')
 
@@ -74,7 +73,7 @@ class Template:
           program.append('[')
       elif piece:
         # DIRECTIVE is present.
-        args = string.split(piece[1:-1])
+        args = piece[1:-1].split()
         cmd = args[0]
         if cmd == '#':
           # comment
@@ -118,13 +117,14 @@ class Template:
 
   def _execute(self, program, fp, ctx):
     for step in program:
-      if isinstance(step, StringType):
+      if isinstance(step, str):
         fp.write(step)
       else:
         step[0](step[1], fp, ctx)
 
-  def _cmd_print(self, (refname, ref), fp, ctx):
+  def _cmd_print(self, refs, fp, ctx):
     ### type check the value
+    (refname, ref) = refs
     fp.write(_get_value(refname, ref, ctx))
 
   def _cmd_if_any(self, args, fp, ctx):
@@ -160,7 +160,7 @@ class Template:
   def _cmd_for(self, args, fp, ctx):
     (((refname, ref),), unused, section) = args
     list = _get_value(refname, ref, ctx)
-    if isinstance(list, StringType):
+    if isinstance(list, str):
       raise NeedSequenceError()
     ctx.for_index[refname] = [ list, 0 ]
     for i in range(len(list)):
@@ -170,13 +170,13 @@ class Template:
 
 
 def _prepare_ref(refname):
-  return refname, string.split(refname, '.')
+  return refname, refname.split('.')
 
 def _get_value(refname, ref, ctx):
-  if ctx.for_index.has_key(ref[0]):
+  if ref[0] in ctx.for_index:
     list, idx = ctx.for_index[ref[0]]
     ob = list[idx]
-  elif ctx.data.has_key(ref[0]):
+  elif ref[0] in ctx.data:
     ob = ctx.data[ref[0]]
   else:
     raise UnknownReference(refname)
@@ -192,26 +192,10 @@ def _get_value(refname, ref, ctx):
     return ''
 
   # make sure we return a UTF-8 string.  ### other types?
-  if isinstance(ob, IntType) or isinstance(ob, FloatType):
+  if isinstance(ob, int) or isinstance(ob, float):
     return unicode(ob).encode('UTF-8')
-  if isinstance(ob, UnicodeType):
+  if isinstance(ob, str):
     return ob.encode('UTF-8')
-  if isinstance(ob, StringType):
-    unob = None
-    # Try to decode using the list of possible encodings given
-    for encoding in encodings:
-      try:
-        unob = unicode(ob, encoding, 'strict')
-        break
-      except UnicodeDecodeError:
-        pass
-
-    if unob is None:
-      # Decoding failed with all of the suggested encodings,
-      # Decode again with the last encoding and ignore errors.
-      unob = unicode(ob, encodings[-1], 'replace')
-
-    return unob.encode('UTF-8')
 
   return ob
 
