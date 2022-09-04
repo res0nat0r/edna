@@ -63,10 +63,10 @@ class Scheduler(Thread):
       void = apply(self.action, self.action_args)
       next = self.next_time()
       while time.time() < next and not self.stop_requested:
-	try:
-	  time.sleep(min(self.sleep_quantum, next - time.time()))
-	except:
-	  pass
+        try:
+          time.sleep(min(self.sleep_quantum, next - time.time()))
+        except:
+          pass
 
   def stop(self):
     """
@@ -98,7 +98,7 @@ if __name__ == '__main__':
     def __init__(self, name):
       self.name = name
     def search(self):
-      print "called search() at", int(time.time()), "name=", self.name
+      print("called search() at", int(time.time()), "name=", self.name)
 
 
   got_sigint = 0
@@ -108,23 +108,22 @@ if __name__ == '__main__':
   signal.signal(signal.SIGINT, handle_sigint)
 
   def test(duration, offset, interval, sleep_quantum, workername):
-    print "test: duration=",duration,"offset=",offset,"interval=",interval,"sleep_quantum=",sleep_quantum,"workername=",workername
+    print("test: duration=",duration,"offset=",offset,"interval=",interval,"sleep_quantum=",sleep_quantum,"workername=",workername)
     w = worker(workername)
     s = Scheduler(offset, interval, worker.search, [w], sleep_quantum)
     s.start()
-    print "main thread sleeping"
+    print("main thread sleeping")
     for i in range(1, duration):
       try:
-	time.sleep(1)
+        time.sleep(1)
       except:
-	pass
+        pass
       if got_sigint:
-	  print "main thread got sigint, exiting"
-	  s.stop()
-	  sys.exit(0)
-    print "main thread waking"
+          print("main thread got sigint, exiting")
+          s.stop()
+          sys.exit(0)
+    print("main thread waking")
     s.stop()
 
   test(duration=10, offset=0, interval=1, sleep_quantum=10, workername="foo") # sleep_quantum > interval
   test(duration=30, offset=0, interval=5, sleep_quantum=1, workername="bar")
-
